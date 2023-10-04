@@ -1,45 +1,43 @@
 
 class User {
-  User({
-    required this.Id,
-    required this.FirstName,
-    required this.LastName,
-    required this.Email,
-    this.PhoneNumber,
-    this.profilePhotoId,
-    this.token,
-    this.Role,
-  });
-  late String Id;
-  late String FirstName;
-  late String LastName;
-  late String? PhoneNumber;
-  late String Email;
-  late String? profilePhotoId;
+  late int id;
+  late String firstName;
+  late String lastName;
+  late String? phoneNumber;
+  late String email;
   late String? token;
-  late String? Role;
+  late int? role;
+
+  User({
+    required this.id,
+    required this.firstName,
+    required this.lastName,
+    required this.email,
+    this.phoneNumber,
+    this.token,
+    this.role,
+  });
+
 
   User.fromJson(Map<String, dynamic> json) {
-    Id = json['Id'];
-    FirstName = json['FirstName'];
-    LastName = json['LastName'];
-    PhoneNumber = json['PhoneNumber'];
-    Email = json['Email'];
-    profilePhotoId = json['profilePhotoId'];
+    id = json['id'];
+    firstName = json['firstName'];
+    lastName = json['lastName'];
+    phoneNumber = json['phoneNumber'];
+    email = json['email'];
     token = json['token'];
-    Role = json['Role'];
+    role = json['role'];
   }
 
   Map<String, dynamic> toJson() {
     final data = <String, dynamic>{};
-    data['Id'] = Id;
-    data['FirstName'] = FirstName;
-    data['LastName'] = LastName;
-    data['PhoneNumber'] = PhoneNumber;
-    data['Email'] = Email;
-    data['profilePhotoId'] = profilePhotoId;
+    data['id'] = id;
+    data['firstName'] = firstName;
+    data['lastName'] = lastName;
+    data['phoneNumber'] = phoneNumber;
+    data['email'] = email;
     data['token'] = token;
-    data['Role'] = Role;
+    data['role'] = role;
     return data;
   }
 

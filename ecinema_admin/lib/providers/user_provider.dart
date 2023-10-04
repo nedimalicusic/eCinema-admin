@@ -6,13 +6,31 @@ import '../models/user.dart';
 import '../utils/authorzation.dart';
 import 'base_provider.dart';
 
-class UserProvider extends BaseProvider  {
+class UserProvider extends BaseProvider<User>  {
+  UserProvider() : super('User/GetPaged');
   User? user;
 
-  UserProvider() : super('User');
-
   refreshUser() async {
-    user = await getById(int.parse(user!.Id));
+    user = await getById(user!.id);
+  }
+
+  @override
+
+  Future<List<User>> get(Map<String, String>? params) async {
+    var uri = Uri.parse('$apiUrl/User/GetPaged');
+    var headers = Authorization.createHeaders();
+    if (params != null) {
+      uri = uri.replace(queryParameters: params);
+    }
+    final response = await http.get(uri, headers: headers);
+    print(response);
+    if (response.statusCode == 200) {
+      var data = json.decode(response.body);
+      var items=data['items'];
+      return items.map((d) => fromJson(d)).cast<User>().toList();
+    } else {
+      throw Exception('Failed to load data');
+    }
   }
 
   @override

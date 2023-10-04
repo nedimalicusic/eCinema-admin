@@ -49,7 +49,6 @@ class _CinemasScreenState extends State<CinemasScreen> {
               _buildDataListView()
             ],
           )
-
         )
     );
   }
@@ -138,14 +137,7 @@ class _CinemasScreenState extends State<CinemasScreen> {
             DataRow(
             onSelectChanged: (selected) =>
             {
-              if (selected == true) {
-              Navigator.pushNamedAndRemoveUntil(
-              context,
-              DashboardScreen.routeName,
-                  (route) => false,
-              arguments: e,
-            )
-              }
+
         },
         cells: [
           DataCell(Text(e.id?.toString() ?? "")),

@@ -1,32 +1,34 @@
-import 'package:ecinema_admin/models/movie.dart';
-import 'package:ecinema_admin/providers/movie_provider.dart';
+import 'package:ecinema_admin/models/user.dart';
+import 'package:ecinema_admin/providers/user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../utils/error_dialog.dart';
 
-class MoviesScreen extends StatefulWidget {
-  const MoviesScreen({Key? key}) : super(key: key);
+
+class UsersScreen extends StatefulWidget {
+  const UsersScreen({Key? key}) : super(key: key);
 
   @override
-  State<MoviesScreen> createState() => _MoviesScreenState();
+  State<UsersScreen> createState() => _UsersScreenState();
 }
 
-class _MoviesScreenState extends State<MoviesScreen> {
-  List<Movie> movies = <Movie>[];
-  late MovieProvider _movieProvider;
+class _UsersScreenState extends State<UsersScreen> {
+  List<User> users = <User>[];
+  late UserProvider _userProvider;
+  
   @override
   void initState() {
     super.initState();
-    _movieProvider=context.read<MovieProvider>();
-    loadMovies();
+    _userProvider=context.read<UserProvider>();
+    loadUsers();
   }
 
-  void loadMovies() async {
+  void loadUsers() async {
     try {
-      var moviesResponse = await _movieProvider.get(null);
+      var userResponse = await _userProvider.get(null);
       setState(() {
-        movies = moviesResponse;
+        users = userResponse;
       });
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -38,7 +40,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
     return Scaffold(
         appBar: AppBar(
             backgroundColor: Colors.teal,
-            title: Text("Movies")
+            title: Text("Users")
         ),
         body: Container(
             child: Column(
@@ -68,7 +70,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
                     label: Expanded(
                       flex: 5,
                       child: Text(
-                        "Title",
+                        "FirstName",
                         style: const TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
@@ -76,47 +78,23 @@ class _MoviesScreenState extends State<MoviesScreen> {
                     label: Expanded(
                       flex: 4,
                       child: Text(
-                        "Author",
+                        "LastName",
                         style: const TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
                 DataColumn(
                     label: Expanded(
-                      flex: 2,
+                      flex: 4,
                       child: Text(
-                        "ReleaseYear",
+                        "Email",
                         style: const TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
                 DataColumn(
                     label: Expanded(
-                      flex: 2,
+                      flex: 4,
                       child: Text(
-                        "Length",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
-                      ),
-                    )),
-                DataColumn(
-                    label: Expanded(
-                      flex: 2,
-                      child: Text(
-                        "Duration",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
-                      ),
-                    )),
-                DataColumn(
-                    label: Expanded(
-                      flex: 2,
-                      child: Text(
-                        "NumberOfViews",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
-                      ),
-                    )),
-                DataColumn(
-                    label: Expanded(
-                      flex: 2,
-                      child: Text(
-                        "Production",
+                        "PhoneNumber",
                         style: const TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
@@ -137,8 +115,8 @@ class _MoviesScreenState extends State<MoviesScreen> {
                       ),
                     )),
               ],
-              rows: movies
-                  .map((Movie e) =>
+              rows: users
+                  .map((User e) =>
                   DataRow(
                       onSelectChanged: (selected) =>
                       {
@@ -146,13 +124,10 @@ class _MoviesScreenState extends State<MoviesScreen> {
                       },
                       cells: [
                         DataCell(Text(e.id?.toString() ?? "")),
-                        DataCell(Text(e.title?.toString()  ?? "")),
-                        DataCell(Text(e.author?.toString()  ?? "")),
-                        DataCell(Text(e.releaseYear?.toString()  ?? "")),
-                        DataCell(Text(e.length?.toString()  ?? "")),
-                        DataCell(Text(e.duration?.toString()  ?? "")),
-                        DataCell(Text(e.numberOfViews?.toString()  ?? "")),
-                        DataCell(Text(e.production.name?.toString()  ?? "")),
+                        DataCell(Text(e.firstName?.toString()  ?? "")),
+                        DataCell(Text(e.lastName?.toString()  ?? "")),
+                        DataCell(Text(e.email?.toString()  ?? "")),
+                        DataCell(Text(e.phoneNumber?.toString()  ?? "")),
                         DataCell(
                           ElevatedButton(
                             onPressed: () {
@@ -173,4 +148,5 @@ class _MoviesScreenState extends State<MoviesScreen> {
       ),
     );
   }
+
 }
