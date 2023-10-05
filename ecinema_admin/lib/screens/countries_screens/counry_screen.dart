@@ -1,32 +1,34 @@
-import 'package:ecinema_admin/models/genre.dart';
-import 'package:ecinema_admin/providers/genre_provider.dart';
+
+import 'package:ecinema_admin/models/country.dart';
+import 'package:ecinema_admin/providers/country_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../utils/error_dialog.dart';
 
-class GenresScreen extends StatefulWidget {
-  const GenresScreen({Key? key}) : super(key: key);
+class CountryScreen extends StatefulWidget {
+  const CountryScreen({Key? key}) : super(key: key);
 
   @override
-  State<GenresScreen> createState() => _GenresScreenState();
+  State<CountryScreen> createState() => _CountryScreenState();
 }
 
-class _GenresScreenState extends State<GenresScreen> {
-  List<Genre> genres = <Genre>[];
-  late GenreProvider _genreProvider;
+class _CountryScreenState extends State<CountryScreen> {
+
+  List<Country> countries = <Country>[];
+  late CountryProvider _countryProvider;
   @override
   void initState() {
     super.initState();
-    _genreProvider=context.read<GenreProvider>();
-    loadGenres();
+    _countryProvider=context.read<CountryProvider>();
+    loadCountries();
   }
 
-  void loadGenres() async {
+  void loadCountries() async {
     try {
-      var genresResponse = await _genreProvider.get(null);
+      var countriesResponse = await _countryProvider.get(null);
       setState(() {
-        genres = genresResponse;
+        countries = countriesResponse;
       });
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -38,9 +40,9 @@ class _GenresScreenState extends State<GenresScreen> {
     return Scaffold(
         appBar: AppBar(
             backgroundColor: Colors.teal,
-            title: Text("Genres")
+            title: Text("Countries")
         ),
-        body: Container(
+        body:  Container(
             child: Column(
               children: [
                 _buildDataListView()
@@ -74,6 +76,22 @@ class _GenresScreenState extends State<GenresScreen> {
                     )),
                 DataColumn(
                     label: Expanded(
+                      flex: 4,
+                      child: Text(
+                        "Abbreviation",
+                        style: const TextStyle(fontStyle: FontStyle.normal),
+                      ),
+                    )),
+                DataColumn(
+                    label: Expanded(
+                      flex: 4,
+                      child: Text(
+                        "IsActive",
+                        style: const TextStyle(fontStyle: FontStyle.normal),
+                      ),
+                    )),
+                DataColumn(
+                    label: Expanded(
                       flex: 2,
                       child: Text(
                         "",
@@ -89,26 +107,26 @@ class _GenresScreenState extends State<GenresScreen> {
                       ),
                     )),
               ],
-              rows: genres
-                  .map((Genre e) =>
+              rows: countries
+                  .map((Country e) =>
                   DataRow(
                       onSelectChanged: (selected) =>
                       {
                       },
                       cells: [
                         DataCell(Text(e.id?.toString() ?? "")),
-                        DataCell(Text(e.name?.toString()  ?? "")),
+                        DataCell(Text(e.name?.toString() ?? "")),
+                        DataCell(Text(e.abbreviation?.toString() ?? "")),
+                        DataCell(Text(e.isActive?.toString() ?? "")),
                         DataCell(
                           ElevatedButton(
-                            onPressed: () {
-                            },
+                            onPressed: () {},
                             child: Text("Edit"),
                           ),
                         ),
                         DataCell(
                           ElevatedButton(
-                            onPressed: () {
-                            },
+                            onPressed: () {},
                             child: Text("Delete"),
                           ),
                         ),
@@ -118,5 +136,4 @@ class _GenresScreenState extends State<GenresScreen> {
       ),
     );
   }
-
 }

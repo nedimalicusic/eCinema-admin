@@ -123,11 +123,11 @@ class _UsersScreenState extends State<UsersScreen> {
 
                       },
                       cells: [
-                        DataCell(Text(e.id?.toString() ?? "")),
-                        DataCell(Text(e.firstName?.toString()  ?? "")),
-                        DataCell(Text(e.lastName?.toString()  ?? "")),
-                        DataCell(Text(e.email?.toString()  ?? "")),
-                        DataCell(Text(e.phoneNumber?.toString()  ?? "")),
+                        DataCell(Text(e.Id?.toString() ?? "")),
+                        DataCell(Text(e.FirstName?.toString()  ?? "")),
+                        DataCell(Text(e.LastName?.toString()  ?? "")),
+                        DataCell(Text(e.Email?.toString()  ?? "")),
+                        DataCell(Text(e.PhoneNumber?.toString()  ?? "")),
                         DataCell(
                           ElevatedButton(
                             onPressed: () {

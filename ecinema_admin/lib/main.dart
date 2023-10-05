@@ -1,5 +1,11 @@
 import 'package:ecinema_admin/models/cinema.dart';
+import 'package:ecinema_admin/providers/actor_provider.dart';
 import 'package:ecinema_admin/providers/cinema_provider.dart';
+import 'package:ecinema_admin/providers/city_provider.dart';
+import 'package:ecinema_admin/providers/country_provider.dart';
+import 'package:ecinema_admin/providers/employee_provider.dart';
+import 'package:ecinema_admin/providers/genre_provider.dart';
+import 'package:ecinema_admin/providers/language_provider.dart';
 import 'package:ecinema_admin/providers/movie_provider.dart';
 import 'package:ecinema_admin/providers/production_provider.dart';
 import 'package:ecinema_admin/providers/reservation_provider.dart';
@@ -30,6 +36,12 @@ class MyApp extends StatelessWidget {
           ChangeNotifierProvider(create: (_) => ProductionProvider()),
           ChangeNotifierProvider(create: (_) => ReservationProvider()),
           ChangeNotifierProvider(create: (_) => MovieProvider()),
+          ChangeNotifierProvider(create: (_) => ActorProvider()),
+          ChangeNotifierProvider(create: (_) => EmployeeProvider()),
+          ChangeNotifierProvider(create: (_) => GenreProvider()),
+          ChangeNotifierProvider(create: (_) => CountryProvider()),
+          ChangeNotifierProvider(create: (_) => CityProvider()),
+          ChangeNotifierProvider(create: (_) => LanguageProvider()),
         ],
         child: MaterialApp(
           title: 'Flutter Demo',

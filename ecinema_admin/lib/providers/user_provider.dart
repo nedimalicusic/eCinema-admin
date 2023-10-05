@@ -11,7 +11,7 @@ class UserProvider extends BaseProvider<User>  {
   User? user;
 
   refreshUser() async {
-    user = await getById(user!.id);
+    user = await getById(int.parse(user!.Id));
   }
 
   @override
@@ -61,9 +61,11 @@ class UserProvider extends BaseProvider<User>  {
         'password': password,
       }),
     );
+    print(response);
     if (response.statusCode == 200) {
       Map<String, dynamic> decodedToken = JwtDecoder.decode(response.body);
       user = User.fromJson(decodedToken);
+      print(user);
       Authorization.token = user!.token;
       notifyListeners();
       return user!;

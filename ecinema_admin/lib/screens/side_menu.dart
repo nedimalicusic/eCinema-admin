@@ -1,3 +1,6 @@
+import 'package:ecinema_admin/screens/cities_screens/city_screen.dart';
+import 'package:ecinema_admin/screens/countries_screens/counry_screen.dart';
+import 'package:ecinema_admin/screens/languages_screens/langauge_screen.dart';
 import 'package:ecinema_admin/screens/productions_screens/productions_screen.dart';
 import 'package:ecinema_admin/screens/reservations_screens/reservations_screen.dart';
 import 'package:ecinema_admin/screens/shows_screens/shows_screen.dart';
@@ -30,6 +33,7 @@ class SideMenu extends StatefulWidget {
 class _SideMenuState extends State<SideMenu> {
   late UserProvider userProvider;
   late User? user;
+  bool isExpanded = false;
 
   @override
   void initState() {
@@ -80,6 +84,38 @@ class _SideMenuState extends State<SideMenu> {
                   press: () {
                     widget.onMenuItemClicked(DashboardScreen());
                   },
+                ),
+                ExpansionTile(
+                  onExpansionChanged: (value) {
+                    setState(() {
+                      isExpanded = value; // Ažurirajte stanje kada se meni otvori/zatvori
+                    });
+                  },
+                  title: Text("Referentni podaci",style: TextStyle(color: Colors.white),),
+                  children: <Widget>[
+                    DrawerListTile(
+                      title: "Countries",
+                      press: () {
+                        widget.onMenuItemClicked(CountryScreen());
+                      },
+                    ),
+                    DrawerListTile(
+                      title: "Cities",
+                      press: () {
+                        widget.onMenuItemClicked(CityScreen());
+                      },
+                    ),
+                    DrawerListTile(
+                      title: "Languages",
+                      press: () {
+                        widget.onMenuItemClicked(LanguageScreen());
+                      },
+                    ),
+                  ],
+                  trailing: Icon(
+                    !isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right, // Ikona za strelicu
+                    color: Colors.white, // Boja strelice
+                  ),
                 ),
                 DrawerListTile(
                   title: "Cinemas",

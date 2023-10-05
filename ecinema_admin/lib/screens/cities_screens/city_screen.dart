@@ -1,32 +1,33 @@
-import 'package:ecinema_admin/models/genre.dart';
-import 'package:ecinema_admin/providers/genre_provider.dart';
+import 'package:ecinema_admin/models/city.dart';
+import 'package:ecinema_admin/providers/city_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../utils/error_dialog.dart';
 
-class GenresScreen extends StatefulWidget {
-  const GenresScreen({Key? key}) : super(key: key);
+
+class CityScreen extends StatefulWidget {
+  const CityScreen({Key? key}) : super(key: key);
 
   @override
-  State<GenresScreen> createState() => _GenresScreenState();
+  State<CityScreen> createState() => _CityScreenState();
 }
 
-class _GenresScreenState extends State<GenresScreen> {
-  List<Genre> genres = <Genre>[];
-  late GenreProvider _genreProvider;
+class _CityScreenState extends State<CityScreen> {
+  List<City> cities = <City>[];
+  late CityProvider _cityProvider;
   @override
   void initState() {
     super.initState();
-    _genreProvider=context.read<GenreProvider>();
-    loadGenres();
+    _cityProvider=context.read<CityProvider>();
+    loadCities();
   }
 
-  void loadGenres() async {
+  void loadCities() async {
     try {
-      var genresResponse = await _genreProvider.get(null);
+      var citiesResponse = await _cityProvider.get(null);
       setState(() {
-        genres = genresResponse;
+        cities = citiesResponse;
       });
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -38,9 +39,9 @@ class _GenresScreenState extends State<GenresScreen> {
     return Scaffold(
         appBar: AppBar(
             backgroundColor: Colors.teal,
-            title: Text("Genres")
+            title: Text("Cities")
         ),
-        body: Container(
+        body:  Container(
             child: Column(
               children: [
                 _buildDataListView()
@@ -74,6 +75,30 @@ class _GenresScreenState extends State<GenresScreen> {
                     )),
                 DataColumn(
                     label: Expanded(
+                      flex: 4,
+                      child: Text(
+                        "ZipCode",
+                        style: const TextStyle(fontStyle: FontStyle.normal),
+                      ),
+                    )),
+                DataColumn(
+                    label: Expanded(
+                      flex: 4,
+                      child: Text(
+                        "IsActive",
+                        style: const TextStyle(fontStyle: FontStyle.normal),
+                      ),
+                    )),
+                DataColumn(
+                    label: Expanded(
+                      flex: 4,
+                      child: Text(
+                        "Country",
+                        style: const TextStyle(fontStyle: FontStyle.normal),
+                      ),
+                    )),
+                DataColumn(
+                    label: Expanded(
                       flex: 2,
                       child: Text(
                         "",
@@ -89,26 +114,27 @@ class _GenresScreenState extends State<GenresScreen> {
                       ),
                     )),
               ],
-              rows: genres
-                  .map((Genre e) =>
+              rows: cities
+                  .map((City e) =>
                   DataRow(
                       onSelectChanged: (selected) =>
                       {
                       },
                       cells: [
                         DataCell(Text(e.id?.toString() ?? "")),
-                        DataCell(Text(e.name?.toString()  ?? "")),
+                        DataCell(Text(e.name?.toString() ?? "")),
+                        DataCell(Text(e.zipCode?.toString() ?? "")),
+                        DataCell(Text(e.isActive?.toString() ?? "")),
+                        DataCell(Text(e.country.abbreviation?.toString() ?? "")),
                         DataCell(
                           ElevatedButton(
-                            onPressed: () {
-                            },
+                            onPressed: () {},
                             child: Text("Edit"),
                           ),
                         ),
                         DataCell(
                           ElevatedButton(
-                            onPressed: () {
-                            },
+                            onPressed: () {},
                             child: Text("Delete"),
                           ),
                         ),
@@ -118,5 +144,4 @@ class _GenresScreenState extends State<GenresScreen> {
       ),
     );
   }
-
 }

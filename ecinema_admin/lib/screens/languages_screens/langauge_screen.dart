@@ -1,32 +1,33 @@
-import 'package:ecinema_admin/models/genre.dart';
-import 'package:ecinema_admin/providers/genre_provider.dart';
+import 'package:ecinema_admin/models/language.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../providers/language_provider.dart';
 import '../../utils/error_dialog.dart';
 
-class GenresScreen extends StatefulWidget {
-  const GenresScreen({Key? key}) : super(key: key);
+
+class LanguageScreen extends StatefulWidget {
+  const LanguageScreen({Key? key}) : super(key: key);
 
   @override
-  State<GenresScreen> createState() => _GenresScreenState();
+  State<LanguageScreen> createState() => _LanguageScreenState();
 }
 
-class _GenresScreenState extends State<GenresScreen> {
-  List<Genre> genres = <Genre>[];
-  late GenreProvider _genreProvider;
+class _LanguageScreenState extends State<LanguageScreen> {
+  List<Language> languages = <Language>[];
+  late LanguageProvider _languageProvider;
   @override
   void initState() {
     super.initState();
-    _genreProvider=context.read<GenreProvider>();
-    loadGenres();
+    _languageProvider=context.read<LanguageProvider>();
+    loadLanguages();
   }
 
-  void loadGenres() async {
+  void loadLanguages() async {
     try {
-      var genresResponse = await _genreProvider.get(null);
+      var languagesResponse = await _languageProvider.get(null);
       setState(() {
-        genres = genresResponse;
+        languages = languagesResponse;
       });
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -38,7 +39,7 @@ class _GenresScreenState extends State<GenresScreen> {
     return Scaffold(
         appBar: AppBar(
             backgroundColor: Colors.teal,
-            title: Text("Genres")
+            title: Text("Languages")
         ),
         body: Container(
             child: Column(
@@ -89,8 +90,8 @@ class _GenresScreenState extends State<GenresScreen> {
                       ),
                     )),
               ],
-              rows: genres
-                  .map((Genre e) =>
+              rows: languages
+                  .map((Language e) =>
                   DataRow(
                       onSelectChanged: (selected) =>
                       {
@@ -118,5 +119,4 @@ class _GenresScreenState extends State<GenresScreen> {
       ),
     );
   }
-
 }

@@ -18,7 +18,6 @@ abstract class BaseProvider<T> with ChangeNotifier {
     }
     print(uri);
     final response = await http.get(uri, headers: headers);
-    print(uri);
     if (response.statusCode == 200) {
       var data = json.decode(response.body);
       var items=data['items'];
