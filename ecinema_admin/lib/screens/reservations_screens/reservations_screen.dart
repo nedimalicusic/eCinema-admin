@@ -36,17 +36,70 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-            backgroundColor: Colors.teal,
-            title: Text("Reservations")
+      appBar: AppBar(
+        backgroundColor: Colors.teal,
+        title: Text("Reservations"),
+      ),
+      body: Center(
+        child: Container(
+          width: 1180,
+          child: Column(
+            children: [
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    width: 500,
+                    child: Padding(
+                      padding: EdgeInsets.only(left: 136, top: 8, right: 8), // Margine za input polje
+                      child: TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Pretraga', // Placeholder za pretragu
+                        ),
+                        // Dodajte logiku za pretragu ovde
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(top: 8, right: 146), // Margine za dugme "Dodaj"
+                    child: ElevatedButton(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text('Dodaj državu'),
+                              content: SingleChildScrollView(
+                              ),
+                              actions: <Widget>[
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Text('Zatvori'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                  },
+                                  child: Text('Spremi'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                      child: Text("Dodaj"),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+              _buildDataListView()
+            ],
+          ),
         ),
-        body:Container(
-            child: Column(
-              children: [
-                _buildDataListView()
-              ],
-            )
-        )
+      ),
     );
   }
   Widget _buildDataListView() {
@@ -57,7 +110,6 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
               columns: [
                 DataColumn(
                     label: Expanded(
-                      flex: 2,
                       child: Text(
                         "ID",
                         style: const TextStyle(fontStyle: FontStyle.normal),
@@ -65,7 +117,6 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                     )),
                 DataColumn(
                     label: Expanded(
-                      flex: 4,
                       child: Text(
                         "Cinema",
                         style: const TextStyle(fontStyle: FontStyle.normal),
@@ -73,7 +124,6 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                     )),
                 DataColumn(
                     label: Expanded(
-                      flex: 4,
                       child: Text(
                         "Movie",
                         style: const TextStyle(fontStyle: FontStyle.normal),
@@ -81,7 +131,6 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                     )),
                 DataColumn(
                     label: Expanded(
-                      flex: 4,
                       child: Text(
                         "Seat",
                         style: const TextStyle(fontStyle: FontStyle.normal),
@@ -123,10 +172,6 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
               rows: reservations
                   .map((Reservation e) =>
                   DataRow(
-                      onSelectChanged: (selected) =>
-                      {
-
-                      },
                       cells: [
                         DataCell(Text(e.id?.toString() ?? "")),
                         DataCell(Text(e.show.cinema.name?.toString()  ?? "")),

@@ -1,3 +1,4 @@
+import 'package:ecinema_admin/screens/dashboard_screen.dart';
 import 'package:ecinema_admin/screens/side_menu.dart';
 import 'package:flutter/material.dart';
 
@@ -15,7 +16,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
 
-  Widget _currentPage = CinemasScreen();
+  Widget _currentPage = DashboardScreen();
 
   void _changePage(Widget page) {
     setState(() {

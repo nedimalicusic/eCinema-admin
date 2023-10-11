@@ -9,11 +9,10 @@ import 'package:ecinema_admin/providers/language_provider.dart';
 import 'package:ecinema_admin/providers/movie_provider.dart';
 import 'package:ecinema_admin/providers/production_provider.dart';
 import 'package:ecinema_admin/providers/reservation_provider.dart';
+import 'package:ecinema_admin/providers/show_provider.dart';
 import 'package:ecinema_admin/providers/user_provider.dart';
-import 'package:ecinema_admin/screens/dashboard_screen.dart';
 import 'package:ecinema_admin/screens/home_screen.dart';
 import 'package:ecinema_admin/screens/login_screen.dart';
-import 'package:ecinema_admin/screens/reservations_screens/reservations_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -42,6 +41,7 @@ class MyApp extends StatelessWidget {
           ChangeNotifierProvider(create: (_) => CountryProvider()),
           ChangeNotifierProvider(create: (_) => CityProvider()),
           ChangeNotifierProvider(create: (_) => LanguageProvider()),
+          ChangeNotifierProvider(create: (_) => ShowProvider()),
         ],
         child: MaterialApp(
           title: 'Flutter Demo',

@@ -36,17 +36,70 @@ class _MoviesScreenState extends State<MoviesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-            backgroundColor: Colors.teal,
-            title: Text("Movies")
+      appBar: AppBar(
+        backgroundColor: Colors.teal,
+        title: Text("Movies"),
+      ),
+      body: Center(
+        child: Container(
+          width: 1500,
+          child: Column(
+            children: [
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    width: 500,
+                    child: Padding(
+                      padding: EdgeInsets.only(left: 136, top: 8, right: 8), // Margine za input polje
+                      child: TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Pretraga', // Placeholder za pretragu
+                        ),
+                        // Dodajte logiku za pretragu ovde
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(top: 8, right: 146), // Margine za dugme "Dodaj"
+                    child: ElevatedButton(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text('Dodaj državu'),
+                              content: SingleChildScrollView(
+                              ),
+                              actions: <Widget>[
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Text('Zatvori'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                  },
+                                  child: Text('Spremi'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                      child: Text("Dodaj"),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+              _buildDataListView()
+            ],
+          ),
         ),
-        body: Container(
-            child: Column(
-              children: [
-                _buildDataListView()
-              ],
-            )
-        )
+      ),
     );
   }
 
@@ -140,10 +193,6 @@ class _MoviesScreenState extends State<MoviesScreen> {
               rows: movies
                   .map((Movie e) =>
                   DataRow(
-                      onSelectChanged: (selected) =>
-                      {
-
-                      },
                       cells: [
                         DataCell(Text(e.id?.toString() ?? "")),
                         DataCell(Text(e.title?.toString()  ?? "")),
