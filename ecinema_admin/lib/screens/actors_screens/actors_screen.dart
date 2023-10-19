@@ -16,6 +16,14 @@ class ActorsScreen extends StatefulWidget {
 class _ActorsScreenState extends State<ActorsScreen> {
   List<Actor> actors = <Actor>[];
   late ActorProvider _actorProvider;
+  bool isEditing = false;
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  TextEditingController _birthDateController = TextEditingController();
+  DateTime selectedDate = DateTime.now();
+  int? selectedGender;
   @override
   void initState() {
     super.initState();
@@ -33,6 +41,59 @@ class _ActorsScreenState extends State<ActorsScreen> {
       showErrorDialog(context, e.toString().substring(11));
     }
   }
+
+  void InsertActor() async {
+    try {
+      var newActor = {
+        "firstName": _firstNameController.text,
+        "lastName": _lastNameController.text,
+        "email":_emailController.text,
+        "birthDate": _birthDateController.text,
+        "gender": selectedGender
+      };
+      print(newActor);
+      var city = await _actorProvider.insert(newActor);
+      if (city == "OK") {
+        Navigator.of(context).pop();
+        loadActors();
+      }
+    } on Exception catch (e) {
+      showErrorDialog(context, e.toString().substring(11));
+    }
+  }
+
+  void EditActor(int id) async {
+    try {
+      var newActor = {
+        "id":id,
+        "firstName": _firstNameController.text,
+        "lastName": _lastNameController.text,
+        "email":_emailController.text,
+        "birthDate": _birthDateController.text,
+        "gender": selectedGender
+      };
+      var city = await _actorProvider.edit(newActor);
+      if (city == "OK") {
+        Navigator.of(context).pop();
+        loadActors();
+      }
+    } on Exception catch (e) {
+      showErrorDialog(context, e.toString().substring(11));
+    }
+  }
+
+  void DeleteActor(int id) async {
+    try {
+      var actor = await _actorProvider.delete(id);
+      if (actor == "OK") {
+        Navigator.of(context).pop();
+        loadActors();
+      }
+    } on Exception catch (e) {
+      showErrorDialog(context, e.toString().substring(11));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -69,8 +130,9 @@ class _ActorsScreenState extends State<ActorsScreen> {
                           context: context,
                           builder: (BuildContext context) {
                             return AlertDialog(
-                              title: Text('Dodaj državu'),
+                              title: Text('Dodaj glumca'),
                               content: SingleChildScrollView(
+                                child: AddActorForm(),
                               ),
                               actions: <Widget>[
                                 ElevatedButton(
@@ -81,6 +143,9 @@ class _ActorsScreenState extends State<ActorsScreen> {
                                 ),
                                 ElevatedButton(
                                   onPressed: () {
+                                    if (_formKey.currentState!.validate()) {
+                                      InsertActor();
+                                    }
                                   },
                                   child: Text('Spremi'),
                                 ),
@@ -102,6 +167,130 @@ class _ActorsScreenState extends State<ActorsScreen> {
       ),
     );
   }
+
+
+  Widget AddActorForm({bool isEditing = false, Actor? actorToEdit}) {
+    if (actorToEdit != null) {
+      _firstNameController.text = actorToEdit.firstName ?? '';
+      _lastNameController.text = actorToEdit.lastName ?? '';
+      _emailController.text = actorToEdit.email ?? '';
+      _birthDateController.text = actorToEdit.birthDate ?? '';
+      selectedGender=actorToEdit.gender;
+    } else {
+      _firstNameController.text = '';
+      _lastNameController.text = '';
+      _emailController.text = '';
+      _birthDateController.text = '';
+      selectedGender=null;
+    }
+
+    return Container(
+      height: 400, // Povećao sam visinu da bi se prilagodili novi polja
+      width: 350,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextFormField(
+              controller: _firstNameController,
+              decoration: InputDecoration(labelText: 'Ime'),
+              validator: (value) {
+                if (value!.isEmpty) {
+                  return 'Unesite ime!';
+                }
+                return null;
+              },
+            ),
+            TextFormField(
+              controller: _lastNameController,
+              decoration: InputDecoration(labelText: 'Prezime'),
+              validator: (value) {
+                if (value!.isEmpty) {
+                  return 'Unesite prezime!';
+                }
+                return null;
+              },
+            ),
+            TextFormField(
+              controller: _emailController,
+              decoration: InputDecoration(labelText: 'Email'),
+              validator: (value) {
+                if (value!.isEmpty) {
+                  return 'Unesite email!';
+                }
+                final emailPattern = RegExp(r'^\w+@[\w-]+(\.[\w-]+)+$');
+                if (!emailPattern.hasMatch(value)) {
+                  return 'Unesite ispravan gmail email!';
+                }
+                return null;
+              },
+            ),
+            TextFormField(
+              controller: _birthDateController,
+              decoration: InputDecoration(
+                labelText: 'Datum',
+                hintText: 'Odaberite datum', // Dodajte hintText ovde
+              ),
+              onTap: () {
+                showDatePicker(
+                  context: context,
+                  initialDate: selectedDate,
+                  firstDate: DateTime(1950),
+                  lastDate: DateTime(2101),
+                ).then((date) {
+                  if (date != null) {
+                    setState(() {
+                      selectedDate = date;
+                      _birthDateController.text = DateFormat('yyyy-MM-dd').format(date);
+                    });
+                  }
+                });
+              },
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Unesite datum!';
+                }
+                return null;
+              },
+            ),
+            DropdownButtonFormField<int>(
+              value: selectedGender,
+              onChanged: (newValue) {
+                setState(() {
+                  selectedGender = newValue!;
+                });
+              },
+              items: [
+                DropdownMenuItem<int>(
+                  value: null,
+                  child: Text('Odaberi spol'),
+                ),
+                DropdownMenuItem<int>(
+                  value: 0,
+                  child: Text('Muški'),
+                ),
+                DropdownMenuItem<int>(
+                  value: 1,
+                  child: Text('Ženski'),
+                ),
+              ],
+              decoration: InputDecoration(
+                labelText: 'Spol',
+              ),
+              validator: (value) {
+                if (value == null) {
+                  return 'Unesite spol!';
+                }
+                return null;
+              },
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildDataListView() {
     return Expanded(
@@ -187,6 +376,42 @@ class _ActorsScreenState extends State<ActorsScreen> {
                         DataCell(
                           ElevatedButton(
                             onPressed: () {
+                              setState(() {
+                                isEditing = true;
+                              });
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: Text(isEditing
+                                        ? 'Uredi glumaca'
+                                        : 'Dodaj glumca'),
+                                    content: SingleChildScrollView(
+                                      child: AddActorForm(
+                                          isEditing: isEditing,
+                                          actorToEdit:
+                                          e), // Prosleđivanje podataka o državi
+                                    ),
+                                    actions: <Widget>[
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          Navigator.of(context)
+                                              .pop(); // Zatvorite modal
+                                        },
+                                        child: Text('Zatvori'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          if (_formKey.currentState!.validate()) {
+                                            EditActor(e.id);
+                                          }
+                                        },
+                                        child: Text('Spremi'),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
                             },
                             child: Text("Edit"),
                           ),
@@ -194,6 +419,32 @@ class _ActorsScreenState extends State<ActorsScreen> {
                         DataCell(
                           ElevatedButton(
                             onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: Text("Izbrisi glumca"),
+                                    content: SingleChildScrollView(
+                                        child: Text(
+                                            "Da li ste sigurni da zelite obisati glumca?")),
+                                    actions: <Widget>[
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          Navigator.of(context)
+                                              .pop(); // Zatvorite modal
+                                        },
+                                        child: Text('Odustani'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          DeleteActor(e.id);
+                                        },
+                                        child: Text('Izbrisi'),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
                             },
                             child: Text("Delete"),
                           ),

@@ -1,8 +1,21 @@
+
+
+import 'dart:io';
+
+import 'package:ecinema_admin/models/actor.dart';
+import 'package:ecinema_admin/models/language.dart';
 import 'package:ecinema_admin/models/movie.dart';
+import 'package:ecinema_admin/models/production.dart';
+import 'package:ecinema_admin/providers/actor_provider.dart';
+import 'package:ecinema_admin/providers/genre_provider.dart';
+import 'package:ecinema_admin/providers/language_provider.dart';
 import 'package:ecinema_admin/providers/movie_provider.dart';
+import 'package:ecinema_admin/providers/production_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/genre.dart';
 import '../../utils/error_dialog.dart';
 
 class MoviesScreen extends StatefulWidget {
@@ -14,19 +27,91 @@ class MoviesScreen extends StatefulWidget {
 
 class _MoviesScreenState extends State<MoviesScreen> {
   List<Movie> movies = <Movie>[];
+  List<Genre> genres = <Genre>[];
+  List<Language> languages = <Language>[];
+  List<Production> productions = <Production>[];
+  List<Actor> actors = <Actor>[];
   late MovieProvider _movieProvider;
+  late GenreProvider _genreProvider;
+  late LanguageProvider _languageProvider;
+  late ProductionProvider _productionProvider;
+  late ActorProvider _actorProvider;
+  bool isEditing = false;
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _authorController = TextEditingController();
+  final TextEditingController _relaseYearController = TextEditingController();
+  final TextEditingController _durationController = TextEditingController();
+  final TextEditingController _numberOfViewsController = TextEditingController();
+  TextEditingController _imageController = TextEditingController();
+  int? selectedLanguageId;
+  int? selectedProductionId;
+  int? selectedgenreId;
+
   @override
   void initState() {
     super.initState();
     _movieProvider=context.read<MovieProvider>();
+    _genreProvider=context.read<GenreProvider>();
+    _languageProvider=context.read<LanguageProvider>();
+    _productionProvider=context.read<ProductionProvider>();
+    _actorProvider=context.read<ActorProvider>();
     loadMovies();
+    loadGenres();
+    loadLanguages();
+    loadProductions();
+    loadActors();
   }
+
+
 
   void loadMovies() async {
     try {
       var moviesResponse = await _movieProvider.get(null);
       setState(() {
         movies = moviesResponse;
+      });
+    } on Exception catch (e) {
+      showErrorDialog(context, e.toString().substring(11));
+    }
+  }
+  void loadGenres() async {
+    try {
+      var genresResponse = await _genreProvider.get(null);
+      setState(() {
+        genres = genresResponse;
+      });
+    } on Exception catch (e) {
+      showErrorDialog(context, e.toString().substring(11));
+    }
+  }
+  void loadLanguages() async {
+    try {
+      var languagesResponse = await _languageProvider.get(null);
+      setState(() {
+        languages = languagesResponse;
+      });
+    } on Exception catch (e) {
+      showErrorDialog(context, e.toString().substring(11));
+    }
+  }
+  void loadActors() async {
+    try {
+      var actorsResponse = await _actorProvider.get(null);
+      setState(() {
+        actors = actorsResponse;
+      });
+    } on Exception catch (e) {
+      showErrorDialog(context, e.toString().substring(11));
+    }
+  }
+
+  void loadProductions() async {
+    try {
+      var productionResponse = await _productionProvider.get(null);
+      setState(() {
+        productions = productionResponse;
       });
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -69,8 +154,9 @@ class _MoviesScreenState extends State<MoviesScreen> {
                           context: context,
                           builder: (BuildContext context) {
                             return AlertDialog(
-                              title: Text('Dodaj državu'),
+                              title: Text('Dodaj film'),
                               content: SingleChildScrollView(
+                                child: AddMovieForm(),
                               ),
                               actions: <Widget>[
                                 ElevatedButton(
@@ -102,6 +188,156 @@ class _MoviesScreenState extends State<MoviesScreen> {
       ),
     );
   }
+
+  Widget AddMovieForm({bool isEditing = false, Movie? movieToEdit}) {
+    if (movieToEdit != null) {
+
+    } else {
+
+    }
+
+    return Container(
+      height: 500,
+      width: 900,
+      child: Form(
+        key: _formKey,
+        child: Row(
+          children: [
+            SizedBox(width: 30,),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFormField(
+                    controller: _titleController,
+                    decoration: InputDecoration(labelText: 'Naziv'),
+                    validator: (value) {
+                      if (value!.isEmpty) {
+                        return 'Unesite naziv!';
+                      }
+                      return null;
+                    },
+                  ),
+                  TextFormField(
+                    controller: _relaseYearController,
+                    decoration: InputDecoration(labelText: 'Godina izdavanja'),
+                    validator: (value) {
+                      if (value!.isEmpty) {
+                        return 'Unesite godinu izdavanja!';
+                      }
+                      return null;
+                    },
+                  ),
+                  TextFormField(
+                    controller: _authorController,
+                    decoration: InputDecoration(labelText: 'Autor'),
+                    validator: (value) {
+                      if (value!.isEmpty) {
+                        return 'Unesite autora!';
+                      }
+                      return null;
+                    },
+                  ),
+                  DropdownButtonFormField<int>(
+                    value: selectedgenreId,
+                    onChanged: (int? newValue) {
+                      setState(() {
+                        selectedgenreId = newValue;
+                      });
+                    },
+                    items: genres.map((Genre genre) {
+                      return DropdownMenuItem<int>(
+                        value: genre.id,
+                        child: Text(genre.name),
+                      );
+                    }).toList(),
+                    decoration: InputDecoration(labelText: 'Žanr'),
+                    validator: (value) {
+                      if (value == null) {
+                        return 'Odaberite žanr!';
+                      }
+                      return null;
+                    },
+                  ),
+                  DropdownButtonFormField<int>(
+                    value: selectedLanguageId,
+                    onChanged: (int? newValue) {
+                      setState(() {
+                        selectedLanguageId = newValue;
+                      });
+                    },
+                    items: languages.map((Language language) {
+                      return DropdownMenuItem<int>(
+                        value: language.id,
+                        child: Text(language.name),
+                      );
+                    }).toList(),
+                    decoration: InputDecoration(labelText: 'Jezik'),
+                    validator: (value) {
+                      if (value == null) {
+                        return 'Odaberite jezik!';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: 30,),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFormField(
+                    controller: _durationController,
+                    decoration: InputDecoration(labelText: 'Trajanje'),
+                    validator: (value) {
+                      if (value!.isEmpty) {
+                        return 'Unesite trajanje!';
+                      }
+                      return null;
+                    },
+                  ),
+                  DropdownButtonFormField<int>(
+                    value: selectedProductionId,
+                    onChanged: (int? newValue) {
+                      setState(() {
+                        selectedProductionId = newValue;
+                      });
+                    },
+                    items: productions.map((Production production) {
+                      return DropdownMenuItem<int>(
+                        value: production.id,
+                        child: Text(production.name),
+                      );
+                    }).toList(),
+                    decoration: InputDecoration(labelText: 'Produkcija'),
+                    validator: (value) {
+                      if (value == null) {
+                        return 'Odaberite produkciju!';
+                      }
+                      return null;
+                    },
+                  ),
+                  TextFormField(
+                    controller: _descriptionController,
+                    decoration: InputDecoration(labelText: 'Opis'),
+                    validator: (value) {
+                      if (value!.isEmpty) {
+                        return 'Unesite opis!';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildDataListView() {
     return Expanded(

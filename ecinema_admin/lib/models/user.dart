@@ -1,47 +1,63 @@
 
 class User {
-  late String Id;
-  late String FirstName;
-  late String LastName;
-  late String? PhoneNumber;
-  late String Email;
-  late String? profilePhotoId;
+  late int id;
+  late String firstName;
+  late String lastName;
+  late String? phoneNumber;
+  late String birthDate;
+  late String email;
+  late int? profilePhotoId;
   late String? token;
-  late String? Role;
+  late int? role;
+  late int gender;
+  late bool isActive;
+  late bool isVerified;
 
   User({
-    required this.Id,
-    required this.FirstName,
-    required this.LastName,
-    required this.Email,
-    this.PhoneNumber,
+    required this.id,
+    required this.firstName,
+    required this.lastName,
+    required this.email,
+    required this.gender,
+    required this.isActive,
+    required this.isVerified,
+    required this.birthDate,
+    this.phoneNumber,
     this.profilePhotoId,
     this.token,
-    this.Role,
+    this.role,
   });
 
 
   User.fromJson(Map<String, dynamic> json) {
-    Id = json['Id'];
-    FirstName = json['FirstName'];
-    LastName = json['LastName'];
-    PhoneNumber = json['PhoneNumber'];
-    Email = json['Email'];
+    id = json['id'];
+    firstName = json['firstName'];
+    lastName = json['lastName'];
+    phoneNumber = json['phoneNumber'];
+    email = json['email'];
     profilePhotoId = json['profilePhotoId'];
     token = json['token'];
-    Role = json['Role'];
+    role = json['role'];
+    gender = json['gender'];
+    isActive = json['isActive'];
+    isVerified = json['isVerified'];
+    birthDate = json['birthDate'];
   }
 
   Map<String, dynamic> toJson() {
     final data = <String, dynamic>{};
-    data['Id'] = Id;
-    data['FirstName'] = FirstName;
-    data['LastName'] = LastName;
-    data['PhoneNumber'] = PhoneNumber;
-    data['Email'] = Email;
+    data['id'] = id;
+    data['firstName'] = firstName;
+    data['lastName'] = lastName;
+    data['phoneNumber'] = phoneNumber;
+    data['email'] = email;
     data['profilePhotoId'] = profilePhotoId;
     data['token'] = token;
-    data['Role'] = Role;
+    data['role'] = role;
+    data['gender'] = gender;
+    data['isActive'] = isActive;
+    data['isVerified'] = isVerified;
+    data['birthDate'] = birthDate;
     return data;
   }
 

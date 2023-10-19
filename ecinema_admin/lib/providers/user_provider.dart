@@ -10,12 +10,7 @@ class UserProvider extends BaseProvider<User>  {
   UserProvider() : super('User/GetPaged');
   User? user;
 
-  refreshUser() async {
-    user = await getById(int.parse(user!.Id));
-  }
-
   @override
-
   Future<List<User>> get(Map<String, String>? params) async {
     var uri = Uri.parse('$apiUrl/User/GetPaged');
     var headers = Authorization.createHeaders();
@@ -23,13 +18,55 @@ class UserProvider extends BaseProvider<User>  {
       uri = uri.replace(queryParameters: params);
     }
     final response = await http.get(uri, headers: headers);
-    print(response);
+    print(response.body);
     if (response.statusCode == 200) {
       var data = json.decode(response.body);
       var items=data['items'];
       return items.map((d) => fromJson(d)).cast<User>().toList();
     } else {
       throw Exception('Failed to load data');
+    }
+  }
+
+  @override
+  Future<dynamic> insert(dynamic resource) async {
+    var uri = Uri.parse('$apiUrl/User');
+    Map<String, String> headers = Authorization.createHeaders();
+
+    var jsonRequest = jsonEncode(resource);
+    var response = await http.post(uri, headers: headers, body: jsonRequest);
+
+    if (response.statusCode == 200) {
+      return "OK";
+    } else {
+      throw Exception('Greška prilikom unosa');
+    }
+  }
+
+  Future<dynamic> edit(dynamic resource) async {
+    var uri = Uri.parse('$apiUrl/User');
+    Map<String, String> headers = Authorization.createHeaders();
+
+    var jsonRequest = jsonEncode(resource);
+    var response = await http.put(uri, headers: headers, body: jsonRequest);
+
+    if (response.statusCode == 200) {
+      return "OK";
+    } else {
+      throw Exception('Greška prilikom unosa');
+    }
+  }
+
+  Future<dynamic> delete(int id) async {
+    var uri = Uri.parse('$apiUrl/User/${id}');
+    Map<String, String> headers = Authorization.createHeaders();
+
+    var response = await http.delete(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      return "OK";
+    } else {
+      throw Exception('Greška prilikom unosa');
     }
   }
 
@@ -47,36 +84,6 @@ class UserProvider extends BaseProvider<User>  {
     } else {
       throw Exception('Failed to load data');
     }
-  }
-
-  Future<User> loginAsync(String email, String password) async {
-    var url = '$apiUrl/Access/SignIn';
-    final response = await http.post(
-      Uri.parse(url),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{
-        'email': email,
-        'password': password,
-      }),
-    );
-    print(response);
-    if (response.statusCode == 200) {
-      Map<String, dynamic> decodedToken = JwtDecoder.decode(response.body);
-      user = User.fromJson(decodedToken);
-      print(user);
-      Authorization.token = user!.token;
-      notifyListeners();
-      return user!;
-    } else {
-      throw Exception(response.body);
-    }
-  }
-
-  void logout() {
-    user = null;
-    notifyListeners();
   }
 
   @override

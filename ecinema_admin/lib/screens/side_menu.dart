@@ -1,3 +1,4 @@
+import 'package:ecinema_admin/models/loginUser.dart';
 import 'package:ecinema_admin/screens/cities_screens/city_screen.dart';
 import 'package:ecinema_admin/screens/countries_screens/counry_screen.dart';
 import 'package:ecinema_admin/screens/languages_screens/langauge_screen.dart';
@@ -8,7 +9,7 @@ import 'package:ecinema_admin/screens/users_screens/users_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/user.dart';
+import '../providers/login_provider.dart';
 import '../providers/user_provider.dart';
 import 'actors_screens/actors_screen.dart';
 import 'cinema_screens/cinemas_screen.dart';
@@ -31,22 +32,22 @@ class SideMenu extends StatefulWidget {
 }
 
 class _SideMenuState extends State<SideMenu> {
-  late UserProvider userProvider;
-  late User? user;
+  late LoginProvider loginUserProvider;
+  late LoginUser? loginUser;
   bool isExpanded = false;
 
   @override
   void initState() {
     super.initState();
 
-    userProvider=context.read<UserProvider>();
+    loginUserProvider=context.read<LoginProvider>();
   }
 
   @override
   Widget build(BuildContext context) {
 
-    user = context.watch<UserProvider>().user;
-    if (user == null) {
+    loginUser = context.watch<LoginProvider>().loginUser;
+    if (loginUser == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.of(context).pushReplacementNamed(LoginScreen.routeName);
       });
@@ -180,7 +181,7 @@ class _SideMenuState extends State<SideMenu> {
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
               ),
-              onPressed: userProvider.logout,
+              onPressed: loginUserProvider.logout,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: const [

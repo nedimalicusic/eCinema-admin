@@ -1,4 +1,5 @@
 import 'package:ecinema_admin/models/cinema.dart';
+import 'package:ecinema_admin/models/loginUser.dart';
 import 'package:ecinema_admin/providers/actor_provider.dart';
 import 'package:ecinema_admin/providers/cinema_provider.dart';
 import 'package:ecinema_admin/providers/city_provider.dart';
@@ -6,9 +7,11 @@ import 'package:ecinema_admin/providers/country_provider.dart';
 import 'package:ecinema_admin/providers/employee_provider.dart';
 import 'package:ecinema_admin/providers/genre_provider.dart';
 import 'package:ecinema_admin/providers/language_provider.dart';
+import 'package:ecinema_admin/providers/login_provider.dart';
 import 'package:ecinema_admin/providers/movie_provider.dart';
 import 'package:ecinema_admin/providers/production_provider.dart';
 import 'package:ecinema_admin/providers/reservation_provider.dart';
+import 'package:ecinema_admin/providers/seats_provider.dart';
 import 'package:ecinema_admin/providers/show_provider.dart';
 import 'package:ecinema_admin/providers/user_provider.dart';
 import 'package:ecinema_admin/screens/home_screen.dart';
@@ -42,6 +45,8 @@ class MyApp extends StatelessWidget {
           ChangeNotifierProvider(create: (_) => CityProvider()),
           ChangeNotifierProvider(create: (_) => LanguageProvider()),
           ChangeNotifierProvider(create: (_) => ShowProvider()),
+          ChangeNotifierProvider(create: (_) => SeatsProvider()),
+          ChangeNotifierProvider(create: (_) => LoginProvider()),
         ],
         child: MaterialApp(
           title: 'Flutter Demo',
@@ -67,19 +72,19 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late UserProvider userProvider;
+  late LoginProvider loginUserprovider;
 
   @override
   void initState() {
     super.initState();
 
-    userProvider = context.read<UserProvider>();
+    loginUserprovider = context.read<LoginProvider>();
   }
 
   @override
   Widget build(BuildContext context) {
-    User? user = userProvider.user;
-    if (user == null) {
+    LoginUser? loginUser = loginUserprovider.loginUser;
+    if (loginUser == null) {
       return const LoginScreen();
     }
 

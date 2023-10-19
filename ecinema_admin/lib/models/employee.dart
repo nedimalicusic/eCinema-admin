@@ -7,7 +7,7 @@ class Employee {
   late String birthDate;
   late int gender;
   late bool isActive;
-  late int profilePhotoId;
+  late int? profilePhotoId;
   late int cinemaId;
 
   Employee({
@@ -18,7 +18,7 @@ class Employee {
     required this.birthDate,
     required this.gender,
     required this.isActive,
-    required this.profilePhotoId,
+    this.profilePhotoId,
     required this.cinemaId,
   });
 

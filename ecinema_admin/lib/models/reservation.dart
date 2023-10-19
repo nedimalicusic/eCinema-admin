@@ -1,5 +1,6 @@
 import 'package:ecinema_admin/models/seats.dart';
 import 'package:ecinema_admin/models/shows.dart';
+import 'package:ecinema_admin/models/user.dart';
 
 class Reservation {
   late int id;
@@ -8,8 +9,9 @@ class Reservation {
   late int seatId;
   late Shows show;
   late Seats seat;
+  late User user;
   late bool isActive = false;
-  late bool isClosed = false;
+  late bool isConfirm = false;
 
   Reservation(
       {required this.id,
@@ -19,7 +21,8 @@ class Reservation {
         required this.seat,
         required this.seatId,
         required this.isActive,
-        required this.isClosed});
+        required this.user,
+        required this.isConfirm});
 
   Reservation.fromJson(Map<String, dynamic> json) {
     id = json['id'];
@@ -28,8 +31,9 @@ class Reservation {
     seatId = json['seatId'];
     show = Shows.fromJson(json['show']);
     seat = Seats.fromJson(json['seat']);
-    isActive = false;
-    isClosed = false;
+    user = User.fromJson(json['user']);
+    isActive = json['isActive'];
+    isConfirm = json['isConfirm'];
   }
 
   Map<String, dynamic> toJson() {

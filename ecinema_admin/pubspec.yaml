@@ -34,7 +34,9 @@ dependencies:
   flutter_svg: ^0.22.0
   dart_jsonwebtoken: ^2.7.1
   shared_preferences: ^2.2.1
+  image_picker: ^1.0.4
   jwt_decoder: ^2.0.1
+  syncfusion_flutter_datepicker: ^23.1.40
   flutter:
     sdk: flutter
 
