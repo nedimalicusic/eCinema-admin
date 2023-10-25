@@ -15,7 +15,7 @@ class UserProvider extends BaseProvider<User>  {
     var uri = Uri.parse('$apiUrl/User/GetPaged');
     var headers = Authorization.createHeaders();
     if (params != null) {
-      uri = uri.replace(queryParameters: params);
+      uri = uri.replace(queryParameters: {'name': params.values});
     }
     final response = await http.get(uri, headers: headers);
     print(response.body);
@@ -34,6 +34,7 @@ class UserProvider extends BaseProvider<User>  {
     Map<String, String> headers = Authorization.createHeaders();
 
     var jsonRequest = jsonEncode(resource);
+    print(jsonRequest);
     var response = await http.post(uri, headers: headers, body: jsonRequest);
 
     if (response.statusCode == 200) {

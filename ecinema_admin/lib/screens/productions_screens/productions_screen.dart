@@ -20,6 +20,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
   late CountryProvider _countryProvider;
   late ProductionProvider _productionProvider;
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   int? _selectedCountryId;
   bool isEditing = false;
   final _formKey = GlobalKey<FormState>();
@@ -29,8 +30,12 @@ class _ProductionScreenState extends State<ProductionScreen> {
     super.initState();
     _productionProvider=context.read<ProductionProvider>();
     _countryProvider=context.read<CountryProvider>();
-    loadProductions();
+    loadProductions('');
     loadCountries();
+    _searchController.addListener(() {
+      final searchQuery = _searchController.text;
+      loadProductions(searchQuery);
+    });
   }
 
   void loadCountries() async {
@@ -44,9 +49,15 @@ class _ProductionScreenState extends State<ProductionScreen> {
     }
   }
 
-  void loadProductions() async {
+  void loadProductions(String? query) async {
+    var params;
     try {
-      var productionsResponse = await _productionProvider.get(null);
+      if (query != null) {
+        params = query;
+      } else {
+        params = null;
+      }
+      var productionsResponse = await _productionProvider.get({'params': params});
       setState(() {
         productions = productionsResponse;
       });
@@ -64,7 +75,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
       var city = await _productionProvider.insert(newProduction);
       if (city == "OK") {
         Navigator.of(context).pop();
-        loadProductions();
+        loadProductions('');
         setState(() {
           _selectedCountryId=null;
         });
@@ -84,7 +95,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
       var city = await _productionProvider.edit(newProduction);
       if (city == "OK") {
         Navigator.of(context).pop();
-        loadProductions();
+        loadProductions('');
         setState(() {
           _selectedCountryId=null;
         });
@@ -99,7 +110,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
       var country = await _productionProvider.delete(id);
       if (country == "OK") {
         Navigator.of(context).pop();
-        loadProductions();
+        loadProductions('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -128,8 +139,9 @@ class _ProductionScreenState extends State<ProductionScreen> {
                     child: Padding(
                       padding: EdgeInsets.only(left: 136, top: 8, right: 8), // Margine za input polje
                       child: TextField(
+                        controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Pretraga', // Placeholder za pretragu
+                          hintText: 'Pretraga',
                         ),
                         // Dodajte logiku za pretragu ovde
                       ),

@@ -25,7 +25,7 @@ class _CityScreenState extends State<CityScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _zipCodeController = TextEditingController();
-  final TextEditingController _isActiveController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   int? _selectedCountryId;
   bool _cityIsActive=false;
   @override
@@ -33,13 +33,24 @@ class _CityScreenState extends State<CityScreen> {
     super.initState();
     _cityProvider=context.read<CityProvider>();
     _countryProvider=context.read<CountryProvider>();
-    loadCities();
+    loadCities('');
     loadCountries();
+    _searchController.addListener(() {
+      final searchQuery = _searchController.text;
+      loadCities(searchQuery);
+    });
+
   }
 
-  void loadCities() async {
+  void loadCities(String? query) async {
+    var params;
     try {
-      var citiesResponse = await _cityProvider.get(null);
+      if (query != null) {
+        params = query;
+      } else {
+        params = null;
+      }
+      var citiesResponse = await _cityProvider.get({'params': params});
       setState(() {
         cities = citiesResponse;
       });
@@ -70,7 +81,7 @@ class _CityScreenState extends State<CityScreen> {
       var city = await _cityProvider.insert(newCity);
       if (city == "OK") {
         Navigator.of(context).pop();
-        loadCities();
+        loadCities('');
         setState(() {
           _selectedCountryId=null;
         });
@@ -92,7 +103,7 @@ class _CityScreenState extends State<CityScreen> {
       var city = await _cityProvider.edit(newCity);
       if (city == "OK") {
         Navigator.of(context).pop();
-        loadCities();
+        loadCities('');
         setState(() {
           _selectedCountryId=null;
         });
@@ -107,7 +118,7 @@ class _CityScreenState extends State<CityScreen> {
       var country = await _cityProvider.delete(id);
       if (country == "OK") {
         Navigator.of(context).pop();
-        loadCities();
+        loadCities('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -135,8 +146,9 @@ class _CityScreenState extends State<CityScreen> {
                     child: Padding(
                       padding: EdgeInsets.only(left: 136, top: 8, right: 8), // Margine za input polje
                       child: TextField(
+                        controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Pretraga', // Placeholder za pretragu
+                          hintText: 'Pretraga',
                         ),
                         // Dodajte logiku za pretragu ovde
                       ),

@@ -1,4 +1,6 @@
 
+import 'package:ecinema_admin/models/photo.dart';
+
 class User {
   late int id;
   late String firstName;
@@ -12,6 +14,7 @@ class User {
   late int gender;
   late bool isActive;
   late bool isVerified;
+  late Photo? profilePhoto;
 
   User({
     required this.id,
@@ -26,6 +29,7 @@ class User {
     this.profilePhotoId,
     this.token,
     this.role,
+    this.profilePhoto,
   });
 
 
@@ -42,6 +46,11 @@ class User {
     isActive = json['isActive'];
     isVerified = json['isVerified'];
     birthDate = json['birthDate'];
+    if (json['profilePhoto'] != null) {
+      profilePhoto = Photo.fromJson(json['profilePhoto']);
+    } else {
+      profilePhoto = null;
+    }
   }
 
   Map<String, dynamic> toJson() {

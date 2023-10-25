@@ -18,18 +18,30 @@ class _CountryScreenState extends State<CountryScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _abbrevationContoller = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   bool isEditing = false;
-  bool _countryIsActive=false;
+  bool _countryIsActive = false;
+
   @override
   void initState() {
     super.initState();
     _countryProvider = context.read<CountryProvider>();
-    loadCountries();
+    loadCountries('');
+    _searchController.addListener(() {
+      final searchQuery = _searchController.text;
+      loadCountries(searchQuery);
+    });
   }
 
-  void loadCountries() async {
+  void loadCountries(String? query) async {
+    var params;
     try {
-      var countriesResponse = await _countryProvider.get(null);
+      if (query != null) {
+        params = query;
+      } else {
+        params = null;
+      }
+      var countriesResponse = await _countryProvider.get({'params': params});
       setState(() {
         countries = countriesResponse;
       });
@@ -48,7 +60,7 @@ class _CountryScreenState extends State<CountryScreen> {
       var country = await _countryProvider.insert(newCountry);
       if (country == "OK") {
         Navigator.of(context).pop();
-        loadCountries();
+        loadCountries('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -60,7 +72,7 @@ class _CountryScreenState extends State<CountryScreen> {
       var country = await _countryProvider.delete(id);
       if (country == "OK") {
         Navigator.of(context).pop();
-        loadCountries();
+        loadCountries('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -78,7 +90,7 @@ class _CountryScreenState extends State<CountryScreen> {
       var country = await _countryProvider.edit(newCountry);
       if (country == "OK") {
         Navigator.of(context).pop();
-        loadCountries();
+        loadCountries(null);
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -104,17 +116,20 @@ class _CountryScreenState extends State<CountryScreen> {
                   Container(
                     width: 500,
                     child: Padding(
-                      padding: EdgeInsets.only(left: 136, top: 8, right: 8), // Margine za input polje
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: 'Pretraga', // Placeholder za pretragu
-                        ),
-                        // Dodajte logiku za pretragu ovde
-                      ),
-                    ),
+                        padding: EdgeInsets.only(
+                            left: 136,
+                            top: 8,
+                            right: 8), // Margine za input polje
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Pretraga',
+                          ),
+                        )),
                   ),
                   Padding(
-                    padding: EdgeInsets.only(top: 8, right: 146), // Margine za dugme "Dodaj"
+                    padding: EdgeInsets.only(
+                        top: 8, right: 146), // Margine za dugme "Dodaj"
                     child: ElevatedButton(
                       onPressed: () {
                         showDialog(
@@ -166,7 +181,7 @@ class _CountryScreenState extends State<CountryScreen> {
     } else {
       _nameController.text = '';
       _abbrevationContoller.text = '';
-      _countryIsActive=false;
+      _countryIsActive = false;
     }
 
     return Container(
@@ -197,13 +212,15 @@ class _CountryScreenState extends State<CountryScreen> {
                 return null;
               },
             ),
-            SizedBox(height: 20,),
+            SizedBox(
+              height: 20,
+            ),
             Row(
               children: [
                 Checkbox(
-                  value:_countryIsActive,
+                  value: _countryIsActive,
                   onChanged: (bool? value) {
-                    _countryIsActive=!_countryIsActive;
+                    _countryIsActive = !_countryIsActive;
                   },
                 ),
                 Text('Aktivan'),
@@ -271,8 +288,7 @@ class _CountryScreenState extends State<CountryScreen> {
                 )),
               ],
               rows: countries
-                      .map((Country e) =>
-                          DataRow( cells: [
+                      .map((Country e) => DataRow(cells: [
                             DataCell(Text(e.id?.toString() ?? "")),
                             DataCell(Text(e.name?.toString() ?? "")),
                             DataCell(Text(e.abbreviation?.toString() ?? "")),
@@ -306,7 +322,8 @@ class _CountryScreenState extends State<CountryScreen> {
                                           ),
                                           ElevatedButton(
                                             onPressed: () {
-                                              if (_formKey.currentState!.validate()) {
+                                              if (_formKey.currentState!
+                                                  .validate()) {
                                                 EditCountry(e.id);
                                               }
                                             },

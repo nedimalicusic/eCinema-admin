@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import '../helpers/constants.dart';
 import '../utils/authorzation.dart';
 
-
 abstract class BaseProvider<T> with ChangeNotifier {
   String endpoint;
   BaseProvider(this.endpoint);
@@ -14,13 +13,12 @@ abstract class BaseProvider<T> with ChangeNotifier {
     var uri = Uri.parse('$apiUrl/$endpoint');
     var headers = Authorization.createHeaders();
     if (params != null) {
-      uri = uri.replace(queryParameters: params);
+      uri = uri.replace(queryParameters: {'name': params.values});
     }
     final response = await http.get(uri, headers: headers);
-    print(response.body);
     if (response.statusCode == 200) {
       var data = json.decode(response.body);
-      var items=data['items'];
+      var items = data['items'];
       return items.map((d) => fromJson(d)).cast<T>().toList();
     } else {
       throw Exception('Failed to load data');

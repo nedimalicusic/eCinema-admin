@@ -32,17 +32,29 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
   int? selectedUserId;
   bool isActive = false;
   bool isConfirm = false;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _reservationProvider = context.read<ReservationProvider>();
-    loadReservations();
+    loadReservations('');
+    _searchController.addListener(() {
+      final searchQuery = _searchController.text;
+      loadReservations(searchQuery);
+    });
+
   }
 
-  void loadReservations() async {
+  void loadReservations(String? query) async {
+    var params;
     try {
-      var reservationsResponse = await _reservationProvider.get(null);
+      if (query != null) {
+        params = query;
+      } else {
+        params = null;
+      }
+      var reservationsResponse = await _reservationProvider.get({'params': params});
       setState(() {
         reservations = reservationsResponse;
       });
@@ -64,7 +76,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
       var city = await _reservationProvider.edit(editReservation);
       if (city == "OK") {
         Navigator.of(context).pop();
-        loadReservations();
+        loadReservations('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -76,7 +88,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
       var actor = await _reservationProvider.delete(id);
       if (actor == "OK") {
         Navigator.of(context).pop();
-        loadReservations();
+        loadReservations('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -107,8 +119,9 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                           top: 8,
                           right: 8), // Margine za input polje
                       child: TextField(
+                        controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Pretraga', // Placeholder za pretragu
+                          hintText: 'Pretraga',
                         ),
                         // Dodajte logiku za pretragu ovde
                       ),

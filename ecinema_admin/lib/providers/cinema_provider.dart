@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:ecinema_admin/models/dashboard.dart';
+
 import '../helpers/constants.dart';
 import '../models/cinema.dart';
 import '../utils/authorzation.dart';
@@ -59,6 +61,22 @@ class CinemaProvider extends BaseProvider<Cinema> {
     } else {
       throw Exception('Greška prilikom unosa');
     }
+  }
+
+  Future<Dashboard> getDashboardInformation(int cinemaId) async {
+    var uri = Uri.parse('$apiUrl/Cinema/GetDashboardInformation?cinemaId=${cinemaId}');
+    var headers = Authorization.createHeaders();
+    final response = await http.get(uri, headers: headers);
+    if (response.statusCode == 200) {
+      var data = json.decode(response.body);
+      return fromJsonDashboard(data);
+    } else {
+      throw Exception('Failed to load data');
+    }
+  }
+
+  Dashboard fromJsonDashboard(data) {
+    return Dashboard.fromJson(data);
   }
 
   @override

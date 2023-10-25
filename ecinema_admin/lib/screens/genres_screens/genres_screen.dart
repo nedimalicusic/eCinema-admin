@@ -18,17 +18,28 @@ class _GenresScreenState extends State<GenresScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   bool isEditing = false;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _genreProvider=context.read<GenreProvider>();
-    loadGenres();
+    loadGenres('');
+    _searchController.addListener(() {
+      final searchQuery = _searchController.text;
+      loadGenres(searchQuery);
+    });
   }
 
-  void loadGenres() async {
+  void loadGenres(String? query) async {
+    var params;
     try {
-      var genresResponse = await _genreProvider.get(null);
+      if (query != null) {
+        params = query;
+      } else {
+        params = null;
+      }
+      var genresResponse = await _genreProvider.get({'params': params});
       setState(() {
         genres = genresResponse;
       });
@@ -45,7 +56,7 @@ class _GenresScreenState extends State<GenresScreen> {
       var language = await _genreProvider.insert(newGenre);
       if (language == "OK") {
         Navigator.of(context).pop();
-        loadGenres();
+        loadGenres('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -57,7 +68,7 @@ class _GenresScreenState extends State<GenresScreen> {
       var genre = await _genreProvider.delete(id);
       if (genre == "OK") {
         Navigator.of(context).pop();
-        loadGenres();
+        loadGenres('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -73,7 +84,7 @@ class _GenresScreenState extends State<GenresScreen> {
       var language = await _genreProvider.edit(newGenre);
       if (language == "OK") {
         Navigator.of(context).pop();
-        loadGenres();
+        loadGenres('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -101,8 +112,9 @@ class _GenresScreenState extends State<GenresScreen> {
                     child: Padding(
                       padding: EdgeInsets.only(left: 136, top: 8, right: 8), // Margine za input polje
                       child: TextField(
+                        controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Pretraga', // Placeholder za pretragu
+                          hintText: 'Pretraga',
                         ),
                         // Dodajte logiku za pretragu ovde
                       ),

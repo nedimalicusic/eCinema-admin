@@ -30,6 +30,8 @@ class _CinemasScreenState extends State<CinemasScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneNumberController = TextEditingController();
   final TextEditingController _numberOfSeatsController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
+
   int? selectedCity;
 
   @override
@@ -37,13 +39,23 @@ class _CinemasScreenState extends State<CinemasScreen> {
     super.initState();
     _cinemaProvider=context.read<CinemaProvider>();
     _cityProvider=context.read<CityProvider>();
-    loadCinema();
+    loadCinema('');
     loadCities();
+    _searchController.addListener(() {
+      final searchQuery = _searchController.text;
+      loadCinema(searchQuery);
+    });
   }
 
-  void loadCinema() async {
+  void loadCinema(String? query) async {
+    var params;
     try {
-      var cinemasResponse = await _cinemaProvider.get(null);
+      if (query != null) {
+        params = query;
+      } else {
+        params = null;
+      }
+      var cinemasResponse = await _cinemaProvider.get({'params': params});
       setState(() {
         cinemas = cinemasResponse;
       });
@@ -78,7 +90,7 @@ class _CinemasScreenState extends State<CinemasScreen> {
       var city = await _cinemaProvider.insert(newCinema);
       if (city == "OK") {
         Navigator.of(context).pop();
-        loadCinema();
+        loadCinema('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -100,7 +112,7 @@ class _CinemasScreenState extends State<CinemasScreen> {
       var city = await _cinemaProvider.edit(newCinema);
       if (city == "OK") {
         Navigator.of(context).pop();
-        loadCinema();
+        loadCinema('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -112,7 +124,7 @@ class _CinemasScreenState extends State<CinemasScreen> {
       var actor = await _cinemaProvider.delete(id);
       if (actor == "OK") {
         Navigator.of(context).pop();
-        loadCinema();
+        loadCinema('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -139,8 +151,9 @@ class _CinemasScreenState extends State<CinemasScreen> {
                     child: Padding(
                       padding: EdgeInsets.only(left: 136, top: 8, right: 8), // Margine za input polje
                       child: TextField(
+                        controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Pretraga', // Placeholder za pretragu
+                          hintText: 'Pretraga',
                         ),
                         // Dodajte logiku za pretragu ovde
                       ),

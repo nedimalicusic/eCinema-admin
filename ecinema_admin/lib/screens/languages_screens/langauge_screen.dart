@@ -17,17 +17,28 @@ class _LanguageScreenState extends State<LanguageScreen> {
   late LanguageProvider _languageProvider;
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   bool isEditing = false;
   @override
   void initState() {
     super.initState();
     _languageProvider = context.read<LanguageProvider>();
-    loadLanguages();
+    loadLanguages('');
+    _searchController.addListener(() {
+      final searchQuery = _searchController.text;
+      loadLanguages(searchQuery);
+    });
   }
 
-  void loadLanguages() async {
+  void loadLanguages(String? query) async {
+    var params;
     try {
-      var languagesResponse = await _languageProvider.get(null);
+      if (query != null) {
+        params = query;
+      } else {
+        params = null;
+      }
+      var languagesResponse = await _languageProvider.get({'params': params});
       setState(() {
         languages = languagesResponse;
       });
@@ -44,7 +55,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
       var language = await _languageProvider.insert(newLanguage);
       if (language == "OK") {
         Navigator.of(context).pop();
-        loadLanguages();
+        loadLanguages('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -56,7 +67,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
       var country = await _languageProvider.delete(id);
       if (country == "OK") {
         Navigator.of(context).pop();
-        loadLanguages();
+        loadLanguages('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -72,7 +83,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
       var language = await _languageProvider.edit(newLanguage);
       if (language == "OK") {
         Navigator.of(context).pop();
-        loadLanguages();
+        loadLanguages('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -103,8 +114,9 @@ class _LanguageScreenState extends State<LanguageScreen> {
                           top: 8,
                           right: 8), // Margine za input polje
                       child: TextField(
+                        controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Pretraga', // Placeholder za pretragu
+                          hintText: 'Pretraga',
                         ),
                         // Dodajte logiku za pretragu ovde
                       ),

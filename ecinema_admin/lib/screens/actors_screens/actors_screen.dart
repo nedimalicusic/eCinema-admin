@@ -22,18 +22,29 @@ class _ActorsScreenState extends State<ActorsScreen> {
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   TextEditingController _birthDateController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   DateTime selectedDate = DateTime.now();
   int? selectedGender;
   @override
   void initState() {
     super.initState();
     _actorProvider=context.read<ActorProvider>();
-    loadActors();
+    loadActors('');
+    _searchController.addListener(() {
+      final searchQuery = _searchController.text;
+      loadActors(searchQuery);
+    });
   }
 
-  void loadActors() async {
+  void loadActors(String? query) async {
+    var params;
     try {
-      var actorsResponse = await _actorProvider.get(null);
+      if (query != null) {
+        params = query;
+      } else {
+        params = null;
+      }
+      var actorsResponse = await _actorProvider.get({'params': params});
       setState(() {
         actors = actorsResponse;
       });
@@ -55,7 +66,7 @@ class _ActorsScreenState extends State<ActorsScreen> {
       var city = await _actorProvider.insert(newActor);
       if (city == "OK") {
         Navigator.of(context).pop();
-        loadActors();
+        loadActors('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -75,7 +86,7 @@ class _ActorsScreenState extends State<ActorsScreen> {
       var city = await _actorProvider.edit(newActor);
       if (city == "OK") {
         Navigator.of(context).pop();
-        loadActors();
+        loadActors('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -87,7 +98,7 @@ class _ActorsScreenState extends State<ActorsScreen> {
       var actor = await _actorProvider.delete(id);
       if (actor == "OK") {
         Navigator.of(context).pop();
-        loadActors();
+        loadActors('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -115,8 +126,9 @@ class _ActorsScreenState extends State<ActorsScreen> {
                     child: Padding(
                       padding: EdgeInsets.only(left: 136, top: 8, right: 8), // Margine za input polje
                       child: TextField(
+                        controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Pretraga', // Placeholder za pretragu
+                          hintText: 'Pretraga',
                         ),
                         // Dodajte logiku za pretragu ovde
                       ),

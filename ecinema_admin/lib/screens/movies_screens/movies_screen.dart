@@ -44,6 +44,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
   final TextEditingController _relaseYearController = TextEditingController();
   final TextEditingController _durationController = TextEditingController();
   final TextEditingController _numberOfViewsController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   TextEditingController _imageController = TextEditingController();
   int? selectedLanguageId;
   int? selectedProductionId;
@@ -57,18 +58,28 @@ class _MoviesScreenState extends State<MoviesScreen> {
     _languageProvider=context.read<LanguageProvider>();
     _productionProvider=context.read<ProductionProvider>();
     _actorProvider=context.read<ActorProvider>();
-    loadMovies();
+    loadMovies('');
     loadGenres();
     loadLanguages();
     loadProductions();
     loadActors();
+    _searchController.addListener(() {
+      final searchQuery = _searchController.text;
+      loadMovies(searchQuery);
+    });
   }
 
 
 
-  void loadMovies() async {
+  void loadMovies(String? query) async {
+    var params;
     try {
-      var moviesResponse = await _movieProvider.get(null);
+      if (query != null) {
+        params = query;
+      } else {
+        params = null;
+      }
+      var moviesResponse = await _movieProvider.get({'params': params});
       setState(() {
         movies = moviesResponse;
       });
@@ -139,8 +150,9 @@ class _MoviesScreenState extends State<MoviesScreen> {
                     child: Padding(
                       padding: EdgeInsets.only(left: 136, top: 8, right: 8), // Margine za input polje
                       child: TextField(
+                        controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Pretraga', // Placeholder za pretragu
+                          hintText: 'Pretraga',
                         ),
                         // Dodajte logiku za pretragu ovde
                       ),
