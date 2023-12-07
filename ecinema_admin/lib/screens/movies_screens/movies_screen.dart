@@ -132,10 +132,6 @@ class _MoviesScreenState extends State<MoviesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.teal,
-        title: Text("Movies"),
-      ),
       body: Center(
         child: Container(
           width: 1500,

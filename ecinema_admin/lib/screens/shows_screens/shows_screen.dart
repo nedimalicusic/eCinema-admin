@@ -139,10 +139,6 @@ class _ShowsScreenState extends State<ShowsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.teal,
-        title: Text("Shows"),
-      ),
       body: Center(
         child: Container(
           width: 1200,

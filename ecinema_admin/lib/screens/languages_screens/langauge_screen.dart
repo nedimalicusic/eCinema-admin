@@ -93,10 +93,6 @@ class _LanguageScreenState extends State<LanguageScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.teal,
-        title: Text("Languages"),
-      ),
       body: Center(
         child: Container(
           width: 670,

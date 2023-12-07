@@ -134,10 +134,6 @@ class _CinemasScreenState extends State<CinemasScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.teal,
-        title: Text("Cinemas"),
-      ),
       body: Center(
         child: Container(
           child: Column(

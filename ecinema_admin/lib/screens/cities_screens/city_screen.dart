@@ -128,10 +128,6 @@ class _CityScreenState extends State<CityScreen> {
   @override
   Widget build(BuildContext context) {
     return  Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.teal,
-        title: Text("Cities"),
-      ),
       body: Center(
         child: Container(
           width: 1050,

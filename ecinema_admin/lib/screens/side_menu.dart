@@ -40,12 +40,11 @@ class _SideMenuState extends State<SideMenu> {
   void initState() {
     super.initState();
 
-    loginUserProvider=context.read<LoginProvider>();
+    loginUserProvider = context.read<LoginProvider>();
   }
 
   @override
   Widget build(BuildContext context) {
-
     loginUser = context.watch<LoginProvider>().loginUser;
     if (loginUser == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -61,114 +60,116 @@ class _SideMenuState extends State<SideMenu> {
           Expanded(
             child: ListView(
               children: [
-                Container(
-                  margin: EdgeInsets.only(bottom: 30,top: 20), // Postavite željenu marginu ovdje
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Text(
-                          'eCinema',
-                          style: TextStyle(
-                            fontSize: 20, // Postavite željenu veličinu fonta
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white// Boldirajte tekst
-                          ),
-                        )
-                      ],
-                    ),
-                ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12.0), // Dodajte vertikalnu marginu ovde
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 12.0), // Dodajte vertikalnu marginu ovde
                 ),
-                DrawerListTile(
-                  title: "Dashboard",
-                  press: () {
+                ListTile(
+                  leading: Icon(Icons.dashboard, color: Colors.white,),
+                  title: Text("Dashboard",style: TextStyle(color: Colors.white),),
+                  onTap: () {
                     widget.onMenuItemClicked(DashboardScreen());
                   },
                 ),
                 ExpansionTile(
                   onExpansionChanged: (value) {
                     setState(() {
-                      isExpanded = value; // Ažurirajte stanje kada se meni otvori/zatvori
+                      isExpanded = value;
                     });
                   },
-                  title: Text("Referentni podaci",style: TextStyle(color: Colors.white),),
+                  leading: Icon(Icons.category, color: Colors.white),
+                  title: Text("Referentni podaci", style: TextStyle(color: Colors.white),
+                  ),
                   children: <Widget>[
-                    DrawerListTile(
-                      title: "Countries",
-                      press: () {
+                    ListTile(
+                      leading: Icon(Icons.adjust_rounded, color: Colors.white,),
+                      title: Text("Countries",style: TextStyle(color: Colors.white),),
+                      onTap: () {
                         widget.onMenuItemClicked(CountryScreen());
                       },
                     ),
-                    DrawerListTile(
-                      title: "Cities",
-                      press: () {
+                    ListTile(
+                      leading: Icon(Icons.location_city_rounded, color: Colors.white,),
+                      title: Text("Cities",style: TextStyle(color: Colors.white),),
+                      onTap: () {
                         widget.onMenuItemClicked(CityScreen());
                       },
                     ),
-                    DrawerListTile(
-                      title: "Languages",
-                      press: () {
+                    ListTile(
+                      leading: Icon(Icons.language, color: Colors.white,),
+                      title: Text("Languages",style: TextStyle(color: Colors.white),),
+                      onTap: () {
                         widget.onMenuItemClicked(LanguageScreen());
                       },
                     ),
                   ],
                   trailing: Icon(
-                    !isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right, // Ikona za strelicu
+                    !isExpanded
+                        ? Icons.keyboard_arrow_down
+                        : Icons.keyboard_arrow_right, // Ikona za strelicu
                     color: Colors.white, // Boja strelice
                   ),
                 ),
-                DrawerListTile(
-                  title: "Cinemas",
-                  press: () {
+                ListTile(
+                  leading: Icon(Icons.home_outlined, color: Colors.white,),
+                  title: Text("Cinemas",style: TextStyle(color: Colors.white),),
+                  onTap: () {
                     widget.onMenuItemClicked(CinemasScreen());
                   },
                 ),
-                DrawerListTile(
-                  title: "Production",
-                  press: () {
+                ListTile(
+                  leading: Icon(Icons.production_quantity_limits, color: Colors.white,),
+                  title: Text("Production",style: TextStyle(color: Colors.white),),
+                  onTap: () {
                     widget.onMenuItemClicked(ProductionScreen());
                   },
                 ),
-                DrawerListTile(
-                  title: "Reservations",
-                  press: () {
+                ListTile(
+                  leading: Icon(Icons.check, color: Colors.white,),
+                  title: Text("Reservation",style: TextStyle(color: Colors.white),),
+                  onTap: () {
                     widget.onMenuItemClicked(ReservationsScreen());
                   },
                 ),
-                DrawerListTile(
-                  title: "Movies",
-                  press: () {
+                ListTile(
+                  leading: Icon(Icons.movie_creation_outlined, color: Colors.white,),
+                  title: Text("Movies",style: TextStyle(color: Colors.white),),
+                  onTap: () {
                     widget.onMenuItemClicked(MoviesScreen());
                   },
                 ),
-                DrawerListTile(
-                  title: "Genres",
-                  press: () {
+                ListTile(
+                  leading: Icon(Icons.movie_filter_outlined, color: Colors.white,),
+                  title: Text("Genres",style: TextStyle(color: Colors.white),),
+                  onTap: () {
                     widget.onMenuItemClicked(GenresScreen());
                   },
                 ),
-                DrawerListTile(
-                  title: "Actors",
-                  press: () {
+                ListTile(
+                  leading: Icon(Icons.person, color: Colors.white,),
+                  title: Text("Actors",style: TextStyle(color: Colors.white),),
+                  onTap: () {
                     widget.onMenuItemClicked(ActorsScreen());
                   },
                 ),
-                DrawerListTile(
-                  title: "Shows",
-                  press: () {
+                ListTile(
+                  leading: Icon(Icons.slideshow, color: Colors.white,),
+                  title: Text("Shows",style: TextStyle(color: Colors.white),),
+                  onTap: () {
                     widget.onMenuItemClicked(ShowsScreen());
                   },
                 ),
-                DrawerListTile(
-                  title: "Users",
-                  press: () {
+                ListTile(
+                  leading: Icon(Icons.person, color: Colors.white,),
+                  title: Text("Users",style: TextStyle(color: Colors.white),),
+                  onTap: () {
                     widget.onMenuItemClicked(UsersScreen());
                   },
                 ),
-                DrawerListTile(
-                  title: "Employees",
-                  press: () {
+                ListTile(
+                  leading: Icon(Icons.person, color: Colors.white,),
+                  title: Text("Employees",style: TextStyle(color: Colors.white),),
+                  onTap: () {
                     widget.onMenuItemClicked(EmployeesScreen());
                   },
                 ),
@@ -176,8 +177,9 @@ class _SideMenuState extends State<SideMenu> {
             ),
           ),
           Container(
-            margin: EdgeInsets.only(bottom: 5), // Postavite željenu marginu ovdje
-            child:ElevatedButton(
+            margin:
+                EdgeInsets.only(bottom: 5), // Postavite željenu marginu ovdje
+            child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
               ),

@@ -3,7 +3,9 @@ import 'package:ecinema_admin/providers/country_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/user.dart';
 import '../../utils/error_dialog.dart';
+import '../login_screen.dart';
 
 class CountryScreen extends StatefulWidget {
   const CountryScreen({Key? key}) : super(key: key);
@@ -100,10 +102,6 @@ class _CountryScreenState extends State<CountryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.teal,
-        title: Text("Countries"),
-      ),
       body: Center(
         child: Container(
           width: 1100,

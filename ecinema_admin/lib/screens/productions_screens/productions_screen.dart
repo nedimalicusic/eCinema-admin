@@ -121,10 +121,6 @@ class _ProductionScreenState extends State<ProductionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.teal,
-        title: Text("Productions"),
-      ),
       body: Center(
         child: Container(
           width: 900,

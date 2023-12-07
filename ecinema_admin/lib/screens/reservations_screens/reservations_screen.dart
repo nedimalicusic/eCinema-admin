@@ -98,10 +98,6 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.teal,
-        title: Text("Reservations"),
-      ),
       body: Center(
         child: Container(
           width: 1180,

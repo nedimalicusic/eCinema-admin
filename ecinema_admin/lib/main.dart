@@ -49,7 +49,7 @@ class MyApp extends StatelessWidget {
           ChangeNotifierProvider(create: (_) => LoginProvider()),
         ],
         child: MaterialApp(
-          title: 'Flutter Demo',
+          title: 'eCinema application',
           routes: {
             LoginScreen.routeName: (context) => const LoginScreen(),
             HomeScreen.routeName: (context) => const HomeScreen(),
@@ -57,7 +57,7 @@ class MyApp extends StatelessWidget {
           theme: ThemeData(
             primarySwatch: Colors.teal,
           ),
-          home: const MyHomePage(title: 'Flutter Demo Home Page'),
+          home: const MyHomePage(title: 'eCinema application'),
         ));
   }
 }

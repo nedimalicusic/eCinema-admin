@@ -121,10 +121,6 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.teal,
-        title: Text("Employees"),
-      ),
       body: Center(
         child: Container(
           width: 1300,

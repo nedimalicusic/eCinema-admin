@@ -94,10 +94,6 @@ class _GenresScreenState extends State<GenresScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.teal,
-        title: Text("Genres"),
-      ),
       body: Center(
         child: Container(
           width: 700,

@@ -108,10 +108,6 @@ class _ActorsScreenState extends State<ActorsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.teal,
-        title: Text("Actors"),
-      ),
       body: Center(
         child: Container(
           width: 1200,

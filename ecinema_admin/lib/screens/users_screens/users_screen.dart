@@ -169,10 +169,6 @@ class _UsersScreenState extends State<UsersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.teal,
-        title: Text("Languages"),
-      ),
       body: Center(
         child: Container(
           child: Column(
