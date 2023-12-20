@@ -2,10 +2,8 @@ import 'package:ecinema_admin/models/city.dart';
 import 'package:ecinema_admin/models/country.dart';
 import 'package:ecinema_admin/providers/city_provider.dart';
 import 'package:ecinema_admin/providers/country_provider.dart';
-import 'package:ecinema_admin/screens/countries_screens/counry_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../../utils/error_dialog.dart';
 
 
@@ -17,22 +15,25 @@ class CityScreen extends StatefulWidget {
 }
 
 class _CityScreenState extends State<CityScreen> {
+  final _formKey = GlobalKey<FormState>();
   List<City> cities = <City>[];
   List<Country> countries = <Country>[];
   late CityProvider _cityProvider;
   late CountryProvider _countryProvider;
-  bool isEditing = false;
-  final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _zipCodeController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
+  late ValueNotifier<bool> _isActiveNotifier;
+  bool isEditing = false;
   int? _selectedCountryId;
   bool _cityIsActive=false;
+
   @override
   void initState() {
     super.initState();
     _cityProvider=context.read<CityProvider>();
     _countryProvider=context.read<CountryProvider>();
+    _isActiveNotifier = ValueNotifier<bool>(_cityIsActive);
     loadCities('');
     loadCountries();
     _searchController.addListener(() {
@@ -140,18 +141,17 @@ class _CityScreenState extends State<CityScreen> {
                   Container(
                     width: 500,
                     child: Padding(
-                      padding: EdgeInsets.only(left: 136, top: 8, right: 8), // Margine za input polje
+                      padding: EdgeInsets.only(left: 136, top: 8, right: 8),
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
                           hintText: 'Pretraga',
                         ),
-                        // Dodajte logiku za pretragu ovde
                       ),
                     ),
                   ),
                   Padding(
-                    padding: EdgeInsets.only(top: 8, right: 146), // Margine za dugme "Dodaj"
+                    padding: EdgeInsets.only(top: 8, right: 146),
                     child: ElevatedButton(
                       onPressed: () {
                         showDialog(
@@ -201,6 +201,7 @@ class _CityScreenState extends State<CityScreen> {
       _nameController.text = cityToEdit.name ?? '';
       _zipCodeController.text = cityToEdit.zipCode ?? '';
       _selectedCountryId=cityToEdit.countryId;
+      _isActiveNotifier.value=cityToEdit.isActive;
     } else {
       _nameController.text = '';
       _zipCodeController.text = '';
@@ -209,7 +210,7 @@ class _CityScreenState extends State<CityScreen> {
     }
 
     return Container(
-      height: 300, // Increased height to accommodate new fields
+      height: 300,
       width: 350,
       child: Form(
         key: _formKey,
@@ -232,9 +233,9 @@ class _CityScreenState extends State<CityScreen> {
               },
               validator: (int? value) {
                 if (value == null) {
-                  return 'Odaberite državu!'; // Error message when no country is selected
+                  return 'Odaberite državu!';
                 }
-                return null; // No error if a country is selected
+                return null;
               },
             ),
             TextFormField(
@@ -258,16 +259,23 @@ class _CityScreenState extends State<CityScreen> {
               },
             ),
             SizedBox(height: 20,),
-            Row(
-              children: [
-                Checkbox(
-                  value:_cityIsActive,
-                  onChanged: (bool? value) {
-                    _cityIsActive=!_cityIsActive;
-                  },
-                ),
-                Text('Aktivan'),
-              ],
+            ValueListenableBuilder<bool>(
+              valueListenable: _isActiveNotifier,
+              builder: (context, isActive, child) {
+                return Row(
+                  children: [
+                    Checkbox(
+                      value: _isActiveNotifier.value,
+                      onChanged: (bool? value) {
+                        _isActiveNotifier.value =
+                        !_isActiveNotifier.value;
+                        _cityIsActive = _isActiveNotifier.value;
+                      },
+                    ),
+                    Text('Aktivan'),
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -281,13 +289,13 @@ class _CityScreenState extends State<CityScreen> {
       child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
-              columns: [
+              columns: const [
                 DataColumn(
                     label: Expanded(
                       flex: 2,
                       child: Text(
                         "ID",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
+                        style: TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
                 DataColumn(
@@ -295,7 +303,7 @@ class _CityScreenState extends State<CityScreen> {
                       flex: 5,
                       child: Text(
                         "Name",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
+                        style: TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
                 DataColumn(
@@ -303,15 +311,15 @@ class _CityScreenState extends State<CityScreen> {
                       flex: 4,
                       child: Text(
                         "ZipCode",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
+                        style: TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
                 DataColumn(
                     label: Expanded(
                       flex: 4,
                       child: Text(
-                        "IsActive",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
+                        "Active",
+                        style: TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
                 DataColumn(
@@ -319,7 +327,7 @@ class _CityScreenState extends State<CityScreen> {
                       flex: 4,
                       child: Text(
                         "Country",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
+                        style: TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
                 DataColumn(
@@ -327,7 +335,7 @@ class _CityScreenState extends State<CityScreen> {
                       flex: 2,
                       child: Text(
                         "",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
+                        style: TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
                 DataColumn(
@@ -335,7 +343,7 @@ class _CityScreenState extends State<CityScreen> {
                       flex: 2,
                       child: Text(
                         "",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
+                        style: TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
               ],
@@ -365,13 +373,13 @@ class _CityScreenState extends State<CityScreen> {
                                       child: AddCityForm(
                                           isEditing: isEditing,
                                           cityToEdit:
-                                          e), // Prosleđivanje podataka o državi
+                                          e),
                                     ),
                                     actions: <Widget>[
                                       ElevatedButton(
                                         onPressed: () {
                                           Navigator.of(context)
-                                              .pop(); // Zatvorite modal
+                                              .pop();
                                         },
                                         child: Text('Zatvori'),
                                       ),

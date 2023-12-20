@@ -87,6 +87,61 @@ class UserProvider extends BaseProvider<User>  {
     }
   }
 
+  Future<dynamic> insertUser(Map<String, dynamic> userData) async {
+    try {
+      var uri = Uri.parse('$apiUrl/User');
+      Map<String, String> headers = Authorization.createHeaders();
+
+      var request = http.MultipartRequest('POST', uri);
+
+      var stringUserData = userData.map((key, value) => MapEntry(key, value.toString()));
+
+      request.fields.addAll(stringUserData);
+
+      if (userData.containsKey('ProfilePhoto')) {
+        request.files.add(userData['ProfilePhoto']);
+      }
+
+      var response = await http.Response.fromStream(await request.send());
+
+      if (response.statusCode == 200) {
+        return "OK";
+      } else {
+        throw Exception('Error inserting user: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error inserting user: $e');
+    }
+  }
+
+  Future<dynamic> updateUser(Map<String, dynamic> updatedUserData) async {
+    try {
+      var uri = Uri.parse('$apiUrl/User');
+      Map<String, String> headers = Authorization.createHeaders();
+
+      var request = http.MultipartRequest('PUT', uri);
+
+      var stringUpdatedUserData = updatedUserData.map((key, value) => MapEntry(key, value.toString()));
+
+      request.fields.addAll(stringUpdatedUserData);
+
+      if (updatedUserData.containsKey('ProfilePhoto')) {
+        request.files.add(updatedUserData['ProfilePhoto']);
+      }
+
+      var response = await http.Response.fromStream(await request.send());
+
+      if (response.statusCode == 200) {
+        return "OK";
+      } else {
+        throw Exception('Error updating user: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error updating user: $e');
+    }
+  }
+
+
   @override
   fromJson(data) {
     return User.fromJson(data);

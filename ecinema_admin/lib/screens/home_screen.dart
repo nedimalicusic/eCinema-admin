@@ -220,28 +220,7 @@ Widget EditUserForm({bool isEditing = false, User? userToEdit}) {
                 child: Padding(
                   padding: const EdgeInsets.all(35),
                   child: Column(children: [
-                    Container(
-                      alignment: Alignment.center,
-                      width: double.infinity,
-                      height: 180,
-                      color: Colors.grey[300],
-                      child: (_pickedFile != null)
-                          ? Image.file(
-                        File(_pickedFile!.path),
-                        width: 230,
-                        height: 200,
-                        fit: BoxFit.cover,
-                      )
-                          : (userToEdit != null && userToEdit.profilePhoto != null)
-                          ? Image.memory(
-                        Uint8List.fromList(
-                            base64Decode(userToEdit.profilePhoto!.data)),
-                        width: 230,
-                        height: 200,
-                        fit: BoxFit.cover,
-                      )
-                          : const Text('Please select an image'),
-                    ),
+                    Container(child: Text("nedim"),),
                     const SizedBox(height: 35),
                     Center(
                       child: SizedBox(

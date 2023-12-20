@@ -2,10 +2,7 @@ import 'package:ecinema_admin/models/country.dart';
 import 'package:ecinema_admin/providers/country_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
-import '../../models/user.dart';
 import '../../utils/error_dialog.dart';
-import '../login_screen.dart';
 
 class CountryScreen extends StatefulWidget {
   const CountryScreen({Key? key}) : super(key: key);
@@ -15,12 +12,13 @@ class CountryScreen extends StatefulWidget {
 }
 
 class _CountryScreenState extends State<CountryScreen> {
+  final _formKey = GlobalKey<FormState>();
   List<Country> countries = <Country>[];
   late CountryProvider _countryProvider;
-  final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _abbrevationContoller = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
+  late ValueNotifier<bool> _isActiveNotifier;
   bool isEditing = false;
   bool _countryIsActive = false;
 
@@ -28,6 +26,7 @@ class _CountryScreenState extends State<CountryScreen> {
   void initState() {
     super.initState();
     _countryProvider = context.read<CountryProvider>();
+    _isActiveNotifier = ValueNotifier<bool>(_countryIsActive);
     loadCountries('');
     _searchController.addListener(() {
       final searchQuery = _searchController.text;
@@ -92,7 +91,7 @@ class _CountryScreenState extends State<CountryScreen> {
       var country = await _countryProvider.edit(newCountry);
       if (country == "OK") {
         Navigator.of(context).pop();
-        loadCountries(null);
+        loadCountries('');
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -117,7 +116,7 @@ class _CountryScreenState extends State<CountryScreen> {
                         padding: EdgeInsets.only(
                             left: 136,
                             top: 8,
-                            right: 8), // Margine za input polje
+                            right: 8),
                         child: TextField(
                           controller: _searchController,
                           decoration: InputDecoration(
@@ -127,7 +126,7 @@ class _CountryScreenState extends State<CountryScreen> {
                   ),
                   Padding(
                     padding: EdgeInsets.only(
-                        top: 8, right: 146), // Margine za dugme "Dodaj"
+                        top: 8, right: 146),
                     child: ElevatedButton(
                       onPressed: () {
                         showDialog(
@@ -176,6 +175,7 @@ class _CountryScreenState extends State<CountryScreen> {
     if (countryToEdit != null) {
       _nameController.text = countryToEdit.name ?? '';
       _abbrevationContoller.text = countryToEdit.abbreviation ?? '';
+      _isActiveNotifier.value=countryToEdit.isActive;
     } else {
       _nameController.text = '';
       _abbrevationContoller.text = '';
@@ -213,16 +213,23 @@ class _CountryScreenState extends State<CountryScreen> {
             SizedBox(
               height: 20,
             ),
-            Row(
-              children: [
-                Checkbox(
-                  value: _countryIsActive,
-                  onChanged: (bool? value) {
-                    _countryIsActive = !_countryIsActive;
-                  },
-                ),
-                Text('Aktivan'),
-              ],
+            ValueListenableBuilder<bool>(
+              valueListenable: _isActiveNotifier,
+              builder: (context, isActive, child) {
+                return Row(
+                  children: [
+                    Checkbox(
+                      value: _isActiveNotifier.value,
+                      onChanged: (bool? value) {
+                        _isActiveNotifier.value =
+                        !_isActiveNotifier.value;
+                        _countryIsActive = _isActiveNotifier.value;
+                      },
+                    ),
+                    Text('Aktivan'),
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -264,7 +271,7 @@ class _CountryScreenState extends State<CountryScreen> {
                     label: Expanded(
                   flex: 4,
                   child: Text(
-                    "IsActive",
+                    "Active",
                     style: const TextStyle(fontStyle: FontStyle.normal),
                   ),
                 )),
@@ -308,13 +315,13 @@ class _CountryScreenState extends State<CountryScreen> {
                                           child: AddCountryForm(
                                               isEditing: isEditing,
                                               countryToEdit:
-                                                  e), // Prosleđivanje podataka o državi
+                                                  e),
                                         ),
                                         actions: <Widget>[
                                           ElevatedButton(
                                             onPressed: () {
                                               Navigator.of(context)
-                                                  .pop(); // Zatvorite modal
+                                                  .pop();
                                             },
                                             child: Text('Zatvori'),
                                           ),
@@ -350,7 +357,7 @@ class _CountryScreenState extends State<CountryScreen> {
                                           ElevatedButton(
                                             onPressed: () {
                                               Navigator.of(context)
-                                                  .pop(); // Zatvorite modal
+                                                  .pop();
                                             },
                                             child: Text('Odustani'),
                                           ),

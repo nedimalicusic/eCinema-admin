@@ -1,15 +1,17 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-
 import 'package:ecinema_admin/models/user.dart';
 import 'package:ecinema_admin/providers/user_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:transparent_image/transparent_image.dart';
+import '../../providers/photo_provider.dart';
+import '../../utils/authorzation.dart';
 import '../../utils/error_dialog.dart';
+import 'package:http/http.dart' as http;
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({Key? key}) : super(key: key);
@@ -21,6 +23,7 @@ class UsersScreen extends StatefulWidget {
 class _UsersScreenState extends State<UsersScreen> {
   List<User> users = <User>[];
   late UserProvider _userProvider;
+  late PhotoProvider _photoProvider;
   bool isEditing = false;
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _firstNameController = TextEditingController();
@@ -30,6 +33,9 @@ class _UsersScreenState extends State<UsersScreen> {
   final TextEditingController _phoneNumberController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
+  late ValueNotifier<bool> _isActiveNotifier;
+  late ValueNotifier<bool> _isVerifiedNotifier;
+  ValueNotifier<File?> _pickedFileNotifier = ValueNotifier(null);
   DateTime selectedDate = DateTime.now();
   int? selectedGender;
   int? selectedCinemaId;
@@ -37,15 +43,17 @@ class _UsersScreenState extends State<UsersScreen> {
   bool _isActive = false;
   bool _isVerified = false;
 
-  File? _image;
-  XFile? _pickedFile;
-  final _picker = ImagePicker();
+  File? _pickedFile;
   File? selectedImage;
 
   @override
   void initState() {
     super.initState();
     _userProvider = context.read<UserProvider>();
+    _photoProvider = context.read<PhotoProvider>();
+    _isActiveNotifier = ValueNotifier<bool>(_isActive);
+    _isVerifiedNotifier = ValueNotifier<bool>(_isVerified);
+    _pickedFileNotifier = ValueNotifier<File?>(_pickedFile);
     loadUsers('');
     _searchController.addListener(() {
       final searchQuery = _searchController.text;
@@ -54,14 +62,17 @@ class _UsersScreenState extends State<UsersScreen> {
   }
 
   Future<void> _pickImage() async {
-    final XFile? pickedFile =
-        await _picker.pickImage(source: ImageSource.gallery);
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
+
     if (pickedFile != null) {
-      setState(() {
-        _pickedFile = pickedFile;
-        _image = File(pickedFile.path);
-      });
+      _pickedFileNotifier.value = File(pickedFile.path);
+      _pickedFile = File(pickedFile.path);
     }
+  }
+
+  Future<String> loadPhoto(String guidId) async {
+    return await _photoProvider.getPhoto(guidId);
   }
 
   void loadUsers(String? query) async {
@@ -75,69 +86,123 @@ class _UsersScreenState extends State<UsersScreen> {
       var userResponse = await _userProvider.get({'params': params});
       setState(() {
         users = userResponse;
+        print(users);
       });
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
     }
   }
 
-  void InsertUser() async {
+  void insertUser() async {
     try {
-      var imageFile = File(_image!.path);
-      List<int> imageBytes = imageFile.readAsBytesSync();
-      String imageBase64 = base64Encode(imageBytes);
+      if (_pickedFile == null) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Alert'),
+              content: Text('Please select an image.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+        return;
+      }
 
-      var newUser = {
-        "firstName": _firstNameController.text,
-        "lastName": _lastNameController.text,
-        "email": _emailController.text,
-        "birthDate": _birthDateController.text,
-        "phoneNumber": _phoneNumberController.text,
-        "gender": selectedGender,
-        "isActive": _isActive,
-        "role": selectedRole,
-        "isVerified": _isVerified,
-        "password": _passwordController.text,
-        "profilePhoto": imageBase64
+      Map<String, dynamic> userData = {
+        "Id": null,
+        'FirstName': _firstNameController.text,
+        'LastName': _lastNameController.text,
+        'Email': _emailController.text,
+        'Password': _passwordController.text,
+        'PhoneNumber': _phoneNumberController.text,
+        'Address': '',
+        'ProfessionalTitle': '',
+        'Gender': selectedGender.toString(),
+        'DateOfBirth':
+            DateTime.parse(_birthDateController.text).toUtc().toIso8601String(),
+        'Role': '1',
+        'LastSignInAt': DateTime.now().toUtc().toIso8601String(),
+        'IsVerified': _isVerified.toString(),
+        'IsActive': _isActive.toString(),
       };
-      print(newUser);
-      var user = await _userProvider.insert(newUser);
-      if (user == "OK") {
+
+      // Add the photo to the user data
+      userData['ProfilePhoto'] = http.MultipartFile.fromBytes(
+        'ProfilePhoto',
+        _pickedFile!.readAsBytesSync(),
+        filename: 'profile_photo.jpg',
+      );
+
+      // Send the request
+      var response = await _userProvider.insertUser(userData);
+
+      if (response == "OK") {
+        // Successful response
         Navigator.of(context).pop();
         loadUsers('');
+        setState(() {
+          selectedGender = null;
+        });
+      } else {
+        // Handle error
+        showErrorDialog(context, 'Greška prilikom dodavanja');
       }
-    } on Exception catch (e) {
-      showErrorDialog(context, e.toString().substring(11));
+    } catch (e) {
+      // Handle exceptions
+      showErrorDialog(context, e.toString());
     }
   }
 
-  void EditUser(int id) async {
+  void editUser(int id) async {
     try {
-      var imageFile = File(_image!.path);
-      List<int> imageBytes = imageFile.readAsBytesSync();
-      String imageBase64 = base64Encode(imageBytes);
-
-      var newUser = {
-        "id": id,
-        "firstName": _firstNameController.text,
-        "lastName": _lastNameController.text,
-        "email": _emailController.text,
-        "birthDate": _birthDateController.text,
-        "phoneNumber": _phoneNumberController.text,
-        "gender": selectedGender,
-        "isActive": _isActive,
-        "role": selectedRole,
-        "isVerified": _isVerified,
-        "password": _passwordController.text,
-        "profilePhoto": imageBase64
+      Map<String, dynamic> userData = {
+        "Id": id.toString(),
+        'FirstName': _firstNameController.text,
+        'LastName': _lastNameController.text,
+        'Email': _emailController.text,
+        'Password': _passwordController.text,
+        'PhoneNumber': _phoneNumberController.text,
+        'Address': '',
+        'ProfessionalTitle': '',
+        'Gender': selectedGender.toString(),
+        'DateOfBirth':
+            DateTime.parse(_birthDateController.text).toUtc().toIso8601String(),
+        'Role': '1',
+        'LastSignInAt': DateTime.now().toUtc().toIso8601String(),
+        'IsVerified': _isVerified.toString(),
+        'IsActive': _isActive.toString(),
       };
-      var user = await _userProvider.edit(newUser);
-      if (user == "OK") {
+      if (_pickedFile != null) {
+        userData['ProfilePhoto'] = http.MultipartFile.fromBytes(
+          'ProfilePhoto',
+          _pickedFile!.readAsBytesSync(),
+          filename: 'profile_photo.jpg',
+        );
+      }
+      // Send the request
+      var response = await _userProvider.updateUser(userData);
+
+      if (response == "OK") {
         Navigator.of(context).pop();
         loadUsers('');
+        setState(() {
+          selectedGender = null;
+        });
+      } else {
+        // Handle error
+        showErrorDialog(context, 'Greška prilikom uređivanja');
       }
-    } on Exception catch (e) {
-      showErrorDialog(context, e.toString().substring(11));
+    } catch (e) {
+      // Handle exceptions
+      showErrorDialog(context, e.toString());
     }
   }
 
@@ -216,7 +281,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                 ElevatedButton(
                                   onPressed: () {
                                     if (_formKey.currentState!.validate()) {
-                                      InsertUser();
+                                      insertUser();
                                     }
                                   },
                                   child: Text('Spremi'),
@@ -242,29 +307,27 @@ class _UsersScreenState extends State<UsersScreen> {
 
   Widget AddUserForm({bool isEditing = false, User? userToEdit}) {
     if (userToEdit != null) {
-      _firstNameController.text = userToEdit.firstName ?? '';
-      _lastNameController.text = userToEdit.lastName ?? '';
-      _emailController.text = userToEdit.email ?? '';
+      _firstNameController.text = userToEdit.firstName;
+      _lastNameController.text = userToEdit.lastName;
+      _emailController.text = userToEdit.email;
       _phoneNumberController.text = userToEdit.phoneNumber ?? '';
       _birthDateController.text = userToEdit.birthDate ?? '';
-      selectedRole = userToEdit.role;
       selectedGender = userToEdit.gender;
       _isActive = userToEdit.isActive;
       _isVerified = userToEdit.isVerified;
       _passwordController.text = '';
-      _pickedFile=null;
+      _pickedFile = null;
     } else {
       _firstNameController.text = '';
       _lastNameController.text = '';
       _emailController.text = '';
       _phoneNumberController.text = '';
       _birthDateController.text = '';
-      selectedRole = null;
       selectedGender = null;
       _isVerified = false;
       _isActive = false;
       _passwordController.text = '';
-      _pickedFile=null;
+      _pickedFile = null;
     }
 
     return Container(
@@ -279,28 +342,76 @@ class _UsersScreenState extends State<UsersScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(35),
                 child: Column(children: [
-                  Container(
-                    alignment: Alignment.center,
-                    width: double.infinity,
-                    height: 180,
-                    color: Colors.grey[300],
-                    child: (_pickedFile != null)
-                        ? Image.file(
-                      File(_pickedFile!.path),
-                      width: 230,
-                      height: 200,
-                      fit: BoxFit.cover,
-                    )
-                        : (userToEdit != null && userToEdit.profilePhoto != null)
-                        ? Image.memory(
-                      Uint8List.fromList(
-                          base64Decode(userToEdit.profilePhoto!.data)),
-                      width: 230,
-                      height: 200,
-                      fit: BoxFit.cover,
-                    )
-                        : const Text('Please select an image'),
-                  ),
+                  ValueListenableBuilder<File?>(
+                      valueListenable: _pickedFileNotifier,
+                      builder: (context, pickedFile, _) {
+                        return Container(
+                          alignment: Alignment.center,
+                          width: double.infinity,
+                          height: 180,
+                          color: Colors.teal,
+                          child: FutureBuilder<String>(
+                            future: _pickedFile != null
+                                ? Future.value(_pickedFile!.path)
+                                : loadPhoto(isEditing
+                                    ? (userToEdit?.profilePhoto?.guidId ?? '')
+                                    : ''),
+                            builder: (BuildContext context,
+                                AsyncSnapshot<String> snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return CircularProgressIndicator();
+                              } else if (snapshot.hasError) {
+                                return Text('Molimo odaberite fotografiju');
+                              } else {
+                                final imageUrl = snapshot.data;
+
+                                if (imageUrl != null && imageUrl.isNotEmpty) {
+                                  return Container(
+                                    child: FadeInImage(
+                                      image: _pickedFile != null
+                                          ? FileImage(_pickedFile!)
+                                              as ImageProvider<Object>
+                                          : NetworkImage(
+                                              imageUrl,
+                                              headers:
+                                                  Authorization.createHeaders(),
+                                            ) as ImageProvider<Object>,
+                                      placeholder:
+                                          MemoryImage(kTransparentImage),
+                                      fadeInDuration:
+                                          const Duration(milliseconds: 300),
+                                      fit: BoxFit.cover,
+                                      width: 230,
+                                      height: 200,
+                                    ),
+                                  );
+                                } else {
+                                  // Ako uređujete korisnika, pokažite poruku za odabir slike
+                                  // Inače, prikažite podrazumevanu sliku iz assetsa
+                                  return isEditing
+                                      ? Container(
+                                          padding: EdgeInsets.symmetric(
+                                              vertical: 8.0),
+                                          child: const Text(
+                                              'Please select an image'),
+                                        )
+                                      : Container(
+                                          padding: EdgeInsets.symmetric(
+                                              vertical: 8.0),
+                                          child: Image.asset(
+                                            'assets/images/default_user_image.jpg',
+                                            width: 230,
+                                            height: 200,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        );
+                                }
+                              }
+                            },
+                          ),
+                        );
+                      }),
                   const SizedBox(height: 35),
                   Center(
                     child: SizedBox(
@@ -309,14 +420,15 @@ class _UsersScreenState extends State<UsersScreen> {
                       child: ElevatedButton(
                         onPressed: () => _pickImage(),
                         style: ElevatedButton.styleFrom(
-                          primary: Colors.teal, // Boja pozadine
+                          backgroundColor: Colors.teal,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(
                                 20.0), // Zaobljenost rubova
                           ),
                         ),
                         child: Text('Select An Image',
-                            style: TextStyle(fontSize: 14)),
+                            style:
+                                TextStyle(fontSize: 12, color: Colors.white)),
                       ),
                     ),
                   )
@@ -448,64 +560,47 @@ class _UsersScreenState extends State<UsersScreen> {
                       return null;
                     },
                   ),
-                  DropdownButtonFormField<int>(
-                    value: selectedRole,
-                    onChanged: (newValue) {
-                      setState(() {
-                        selectedRole = newValue!;
-                      });
-                    },
-                    items: [
-                      DropdownMenuItem<int>(
-                        value: null,
-                        child: Text('Odaberi rolu'),
-                      ),
-                      DropdownMenuItem<int>(
-                        value: 0,
-                        child: Text('Korisnik'),
-                      ),
-                      DropdownMenuItem<int>(
-                        value: 1,
-                        child: Text('Administrator'),
-                      ),
-                    ],
-                    decoration: InputDecoration(
-                      labelText: 'Rola',
-                    ),
-                    validator: (value) {
-                      if (value == null) {
-                        return 'Unesite rolu!';
-                      }
-                      return null;
-                    },
-                  ),
                   SizedBox(
                     height: 20,
                   ),
-                  Row(
-                    children: [
-                      Checkbox(
-                        value: _isActive,
-                        onChanged: (bool? value) {
-                          _isActive = !_isActive;
-                        },
-                      ),
-                      Text('Aktivan'),
-                    ],
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _isActiveNotifier,
+                    builder: (context, isActive, child) {
+                      return Row(
+                        children: [
+                          Checkbox(
+                            value: _isActiveNotifier.value,
+                            onChanged: (bool? value) {
+                              _isActiveNotifier.value =
+                                  !_isActiveNotifier.value;
+                              _isActive = _isActiveNotifier.value;
+                            },
+                          ),
+                          Text('Aktivan'),
+                        ],
+                      );
+                    },
                   ),
                   SizedBox(
                     height: 10,
                   ),
-                  Row(
-                    children: [
-                      Checkbox(
-                        value: _isVerified,
-                        onChanged: (bool? value) {
-                          _isVerified = !_isVerified;
-                        },
-                      ),
-                      Text('Verifikovan'),
-                    ],
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _isVerifiedNotifier,
+                    builder: (context, isVerified, child) {
+                      return Row(
+                        children: [
+                          Checkbox(
+                            value: _isVerifiedNotifier.value,
+                            onChanged: (bool? value) {
+                              _isVerifiedNotifier.value =
+                                  !_isVerifiedNotifier.value;
+                              _isVerified = _isVerifiedNotifier.value;
+                            },
+                          ),
+                          Text('Verifikovan'),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),
@@ -622,26 +717,65 @@ class _UsersScreenState extends State<UsersScreen> {
               rows: users
                       .map((User e) => DataRow(cells: [
                             DataCell(Text(e.id?.toString() ?? "")),
-                            DataCell(Row(
-                              children: [
-                                if (e.profilePhoto != null)
+                            DataCell(
+                              Row(
+                                children: [
                                   Padding(
                                     padding: EdgeInsets.only(right: 8.0),
-                                    child: Image.memory(
-                                      Uint8List.fromList(
-                                          base64Decode(e.profilePhoto!.data)),
-                                      width: 40,
-                                      height: 40,
+                                    child: FutureBuilder<String>(
+                                      future: loadPhoto(
+                                          e.profilePhoto?.guidId ?? ''),
+                                      builder: (BuildContext context,
+                                          AsyncSnapshot<String> snapshot) {
+                                        if (snapshot.connectionState ==
+                                            ConnectionState.waiting) {
+                                          return CircularProgressIndicator();
+                                        } else if (snapshot.hasError) {
+                                          return Text(
+                                              'Greška prilikom učitavanja slike');
+                                        } else {
+                                          final imageUrl = snapshot.data;
+
+                                          if (imageUrl != null &&
+                                              imageUrl.isNotEmpty) {
+                                            return Container(
+                                              padding: EdgeInsets.symmetric(
+                                                  vertical: 8.0),
+                                              child: FadeInImage(
+                                                image: NetworkImage(
+                                                  imageUrl,
+                                                  headers: Authorization
+                                                      .createHeaders(),
+                                                ),
+                                                placeholder: MemoryImage(
+                                                    kTransparentImage),
+                                                fadeInDuration: const Duration(
+                                                    milliseconds: 300),
+                                                fit: BoxFit.fill,
+                                                width: 80,
+                                                height: 105,
+                                              ),
+                                            );
+                                          } else {
+                                            null;
+                                            return Container(
+                                              padding: EdgeInsets.symmetric(
+                                                  vertical: 8.0),
+                                              child: Image.asset(
+                                                'assets/images/user1.jpg',
+                                                width: 80,
+                                                height: 105,
+                                                fit: BoxFit.fill,
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      },
                                     ),
-                                  )
-                                else
-                                  Padding(
-                                    padding: EdgeInsets.only(right: 8.0),
-                                    child: Image.asset('assets/images/user.png',
-                                        width: 40, height: 40),
                                   ),
-                              ],
-                            )),
+                                ],
+                              ),
+                            ),
                             DataCell(Text(e.firstName?.toString() ?? "")),
                             DataCell(Text(e.lastName?.toString() ?? "")),
                             DataCell(Text(e.email?.toString() ?? "")),
@@ -684,7 +818,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                             onPressed: () {
                                               if (_formKey.currentState!
                                                   .validate()) {
-                                                EditUser(e.id);
+                                                editUser(e.id);
                                               }
                                             },
                                             child: Text('Spremi'),

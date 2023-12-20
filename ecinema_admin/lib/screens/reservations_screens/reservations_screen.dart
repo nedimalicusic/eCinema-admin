@@ -1,14 +1,7 @@
 import 'package:ecinema_admin/models/reservation.dart';
-import 'package:ecinema_admin/models/seats.dart';
-import 'package:ecinema_admin/models/shows.dart';
-import 'package:ecinema_admin/models/user.dart';
-import 'package:ecinema_admin/providers/seats_provider.dart';
-import 'package:ecinema_admin/providers/user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../../providers/reservation_provider.dart';
-import '../../providers/show_provider.dart';
 import '../../utils/error_dialog.dart';
 
 class ReservationsScreen extends StatefulWidget {
@@ -19,10 +12,13 @@ class ReservationsScreen extends StatefulWidget {
 }
 
 class _ReservationsScreenState extends State<ReservationsScreen> {
-  List<Reservation> reservations = <Reservation>[];
-  late ReservationProvider _reservationProvider;
-  bool isEditing = false;
   final _formKey = GlobalKey<FormState>();
+  List<Reservation> reservations = <Reservation>[];
+  final TextEditingController _searchController = TextEditingController();
+  late ReservationProvider _reservationProvider;
+  late ValueNotifier<bool> _isActiveNotifier;
+  late ValueNotifier<bool> _isConfirmNotifier;
+  bool isEditing = false;
   String? selectedCinema;
   String? selectedMovie;
   String? selectedUser;
@@ -32,12 +28,15 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
   int? selectedUserId;
   bool isActive = false;
   bool isConfirm = false;
-  final TextEditingController _searchController = TextEditingController();
+  bool _isReservationActive=false;
+  bool _isReservationConfirm=false;
 
   @override
   void initState() {
     super.initState();
     _reservationProvider = context.read<ReservationProvider>();
+    _isConfirmNotifier=ValueNotifier<bool>(_isReservationConfirm);
+    _isActiveNotifier = ValueNotifier<bool>(_isReservationActive);
     loadReservations('');
     _searchController.addListener(() {
       final searchQuery = _searchController.text;
@@ -70,8 +69,8 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
         "showId": selectedShowId,
         "seatId": selectedSeatId,
         "userId": selectedUserId,
-        "isActive": isActive,
-        "isConfirm": isConfirm,
+        "isActive": _isReservationActive,
+        "isConfirm": _isReservationConfirm,
       };
       var city = await _reservationProvider.edit(editReservation);
       if (city == "OK") {
@@ -113,13 +112,12 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                       padding: EdgeInsets.only(
                           left: 136,
                           top: 8,
-                          right: 8), // Margine za input polje
+                          right: 8),
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
                           hintText: 'Pretraga',
                         ),
-                        // Dodajte logiku za pretragu ovde
                       ),
                     ),
                   ),
@@ -144,8 +142,8 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
       selectedUser = reservationToEdit.user.firstName + " "+ reservationToEdit.user.lastName;
       selectedUserId = reservationToEdit.userId;
       selectedSeat='${reservationToEdit.seat.row?.toString() ?? ""}${reservationToEdit.seat.column?.toString() ?? ""}';
-      isActive = reservationToEdit.isActive;
-      isConfirm = reservationToEdit.isConfirm;
+      _isActiveNotifier.value = reservationToEdit.isActive;
+      _isConfirmNotifier.value = reservationToEdit.isConfirm;
     }
 
     return Container(
@@ -175,28 +173,42 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
             initialValue: selectedUser,
           ),
           SizedBox(height: 20,),
-          Row(
-            children: [
-              Checkbox(
-                value:isActive,
-                onChanged: (bool? value) {
-                  isActive=!isActive;
-                },
-              ),
-              Text('Aktivna'),
-            ],
+          ValueListenableBuilder<bool>(
+            valueListenable: _isActiveNotifier,
+            builder: (context, isActive, child) {
+              return Row(
+                children: [
+                  Checkbox(
+                    value: _isActiveNotifier.value,
+                    onChanged: (bool? value) {
+                      _isActiveNotifier.value =
+                      !_isActiveNotifier.value;
+                      _isReservationActive = _isActiveNotifier.value;
+                    },
+                  ),
+                  Text('Aktivan'),
+                ],
+              );
+            },
           ),
           SizedBox(height: 20,),
-          Row(
-            children: [
-              Checkbox(
-                value:isConfirm,
-                onChanged: (bool? value) {
-                  isConfirm=!isConfirm;
-                },
-              ),
-              Text('Potvrdjena'),
-            ],
+          ValueListenableBuilder<bool>(
+            valueListenable: _isConfirmNotifier,
+            builder: (context, isConfirm, child) {
+              return Row(
+                children: [
+                  Checkbox(
+                    value: _isConfirmNotifier.value,
+                    onChanged: (bool? value) {
+                      _isConfirmNotifier.value =
+                      !_isConfirmNotifier.value;
+                      _isReservationConfirm = _isConfirmNotifier.value;
+                    },
+                  ),
+                  Text('Potvrdjena'),
+                ],
+              );
+            },
           ),
         ]),
       ),
@@ -241,7 +253,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                     label: Expanded(
                   flex: 5,
                   child: Text(
-                    "isActive",
+                    "Active",
                     style: const TextStyle(fontStyle: FontStyle.normal),
                   ),
                 )),
@@ -249,7 +261,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                     label: Expanded(
                   flex: 5,
                   child: Text(
-                    "isConfirm",
+                    "Confirm",
                     style: const TextStyle(fontStyle: FontStyle.normal),
                   ),
                 )),
@@ -298,7 +310,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                                           child: EditReservationForm(
                                               isEditing: isEditing,
                                               reservationToEdit:
-                                                  e), // Prosleđivanje podataka o državi
+                                                  e),
                                         ),
                                         actions: <Widget>[
                                           ElevatedButton(
@@ -340,7 +352,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                                           ElevatedButton(
                                             onPressed: () {
                                               Navigator.of(context)
-                                                  .pop(); // Zatvorite modal
+                                                  .pop();
                                             },
                                             child: Text('Odustani'),
                                           ),

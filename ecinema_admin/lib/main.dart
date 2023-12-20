@@ -9,6 +9,7 @@ import 'package:ecinema_admin/providers/genre_provider.dart';
 import 'package:ecinema_admin/providers/language_provider.dart';
 import 'package:ecinema_admin/providers/login_provider.dart';
 import 'package:ecinema_admin/providers/movie_provider.dart';
+import 'package:ecinema_admin/providers/photo_provider.dart';
 import 'package:ecinema_admin/providers/production_provider.dart';
 import 'package:ecinema_admin/providers/reservation_provider.dart';
 import 'package:ecinema_admin/providers/seats_provider.dart';
@@ -28,7 +29,6 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -47,6 +47,7 @@ class MyApp extends StatelessWidget {
           ChangeNotifierProvider(create: (_) => ShowProvider()),
           ChangeNotifierProvider(create: (_) => SeatsProvider()),
           ChangeNotifierProvider(create: (_) => LoginProvider()),
+          ChangeNotifierProvider(create: (_) => PhotoProvider()),
         ],
         child: MaterialApp(
           title: 'eCinema application',

@@ -37,6 +37,7 @@ dependencies:
   image_picker: ^1.0.4
   jwt_decoder: ^2.0.1
   syncfusion_flutter_datepicker: ^23.1.40
+  transparent_image: ^2.0.1
   flutter:
     sdk: flutter
 
