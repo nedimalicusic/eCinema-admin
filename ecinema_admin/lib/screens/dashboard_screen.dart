@@ -59,7 +59,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Container(
               width: 500,
               child: Padding(
-                padding: EdgeInsets.only(
+                padding: const EdgeInsets.only(
                     left: 136,
                     top: 8,
                     right: 8), // Margine za input polje

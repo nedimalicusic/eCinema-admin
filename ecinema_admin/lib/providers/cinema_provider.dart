@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:ecinema_admin/models/dashboard.dart';
+import 'package:ecinema_admin/models/searchObject/cinema_search.dart';
 
 import '../helpers/constants.dart';
 import '../models/cinema.dart';
@@ -35,6 +36,35 @@ class CinemaProvider extends BaseProvider<Cinema> {
       throw Exception('Greška prilikom unosa');
     }
   }
+
+  Future<List<Cinema>> getPaged({CinemaSearchObject? searchObject}) async {
+    var uri = Uri.parse('$apiUrl/Cinema/GetPaged');
+    var headers = Authorization.createHeaders();
+    final Map<String, String> queryParameters = {};
+
+    if (searchObject != null) {
+      if (searchObject.name != null) {
+        queryParameters['name'] = searchObject.name!;
+      }
+      if (searchObject.PageNumber != null) {
+        queryParameters['pageNumber'] = searchObject.PageNumber.toString();
+      }
+      if (searchObject.PageSize != null) {
+        queryParameters['pageSize'] = searchObject.PageSize.toString();
+      }
+    }
+
+    uri = uri.replace(queryParameters: queryParameters);
+    final response = await http.get(uri, headers: headers);
+    if (response.statusCode == 200) {
+      var data = json.decode(response.body);
+      var items = data['items'];
+      return items.map((d) => fromJson(d)).cast<Cinema>().toList();
+    } else {
+      throw Exception('Failed to load data');
+    }
+  }
+
 
   Future<dynamic> edit(dynamic resource) async {
     var uri = Uri.parse('$apiUrl/Cinema');

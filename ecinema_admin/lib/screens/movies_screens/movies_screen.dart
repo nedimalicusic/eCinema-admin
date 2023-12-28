@@ -14,8 +14,12 @@ import 'package:ecinema_admin/providers/production_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:transparent_image/transparent_image.dart';
+import 'package:http/http.dart' as http;
 
 import '../../models/genre.dart';
+import '../../providers/photo_provider.dart';
+import '../../utils/authorzation.dart';
 import '../../utils/error_dialog.dart';
 
 class MoviesScreen extends StatefulWidget {
@@ -36,6 +40,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
   late LanguageProvider _languageProvider;
   late ProductionProvider _productionProvider;
   late ActorProvider _actorProvider;
+  late PhotoProvider _photoProvider;
   bool isEditing = false;
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _titleController = TextEditingController();
@@ -43,21 +48,24 @@ class _MoviesScreenState extends State<MoviesScreen> {
   final TextEditingController _authorController = TextEditingController();
   final TextEditingController _relaseYearController = TextEditingController();
   final TextEditingController _durationController = TextEditingController();
-  final TextEditingController _numberOfViewsController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
-  TextEditingController _imageController = TextEditingController();
+  ValueNotifier<File?> _pickedFileNotifier = ValueNotifier(null);
   int? selectedLanguageId;
   int? selectedProductionId;
   int? selectedgenreId;
+  File? _pickedFile;
+  File? selectedImage;
 
   @override
   void initState() {
     super.initState();
     _movieProvider=context.read<MovieProvider>();
+    _photoProvider = context.read<PhotoProvider>();
     _genreProvider=context.read<GenreProvider>();
     _languageProvider=context.read<LanguageProvider>();
     _productionProvider=context.read<ProductionProvider>();
     _actorProvider=context.read<ActorProvider>();
+    _pickedFileNotifier = ValueNotifier<File?>(_pickedFile);
     loadMovies('');
     loadGenres();
     loadLanguages();
@@ -70,6 +78,19 @@ class _MoviesScreenState extends State<MoviesScreen> {
   }
 
 
+  Future<void> _pickImage() async {
+    final pickedFile =
+    await ImagePicker().pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      _pickedFileNotifier.value = File(pickedFile.path);
+      _pickedFile = File(pickedFile.path);
+    }
+  }
+
+  Future<String> loadPhoto(String guidId) async {
+    return await _photoProvider.getPhoto(guidId);
+  }
 
   void loadMovies(String? query) async {
     var params;
@@ -129,6 +150,88 @@ class _MoviesScreenState extends State<MoviesScreen> {
     }
   }
 
+  void insertMovie() async {
+    try {
+      Map<String, dynamic> movieData = {
+        'Title': _titleController.text,
+        'Description': _descriptionController.text,
+        'Author': _authorController.text,
+        'ReleaseYear': _relaseYearController.text,
+        'Duration': _durationController.text,
+        'LanguageId': selectedLanguageId,
+        'ProductionId': selectedProductionId,
+      };
+      if (_pickedFile != null) {
+        movieData['photo'] = http.MultipartFile.fromBytes(
+          'photo',
+          _pickedFile!.readAsBytesSync(),
+          filename: 'photo.jpg',
+        );
+      }
+      // Send the request
+      var response = await _movieProvider.insertMovie(movieData);
+
+      if (response == "OK") {
+        Navigator.of(context).pop();
+        loadMovies('');
+      } else {
+        // Handle error
+        showErrorDialog(context, 'Greška prilikom uređivanja');
+      }
+    } catch (e) {
+      // Handle exceptions
+      showErrorDialog(context, e.toString());
+    }
+  }
+
+  void editMovie(int id) async {
+    try {
+      Map<String, dynamic> movieData = {
+        "Id": id.toString(),
+        'Title': _titleController.text,
+        'Description': _descriptionController.text,
+        'Author': _authorController.text,
+        'ReleaseYear': _relaseYearController.text,
+        'Duration': _durationController.text,
+        'LanguageId': selectedLanguageId,
+        'ProductionId': selectedProductionId,
+      };
+      if (_pickedFile != null) {
+        movieData['Photo'] = http.MultipartFile.fromBytes(
+          'Photo',
+          _pickedFile!.readAsBytesSync(),
+          filename: 'photo.jpg',
+        );
+      }
+      // Send the request
+      var response = await _movieProvider.updateMovie(movieData);
+
+      if (response == "OK") {
+        Navigator.of(context).pop();
+        loadMovies('');
+      } else {
+        // Handle error
+        showErrorDialog(context, 'Greška prilikom uređivanja');
+      }
+    } catch (e) {
+      // Handle exceptions
+      showErrorDialog(context, e.toString());
+    }
+  }
+
+  void DeleteMovie(int id) async {
+    try {
+      var user = await _movieProvider.delete(id);
+      if (user == "OK") {
+        Navigator.of(context).pop();
+        loadMovies('');
+      }
+    } on Exception catch (e) {
+      showErrorDialog(context, e.toString().substring(11));
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -175,6 +278,9 @@ class _MoviesScreenState extends State<MoviesScreen> {
                                 ),
                                 ElevatedButton(
                                   onPressed: () {
+                                    if (_formKey.currentState!.validate()) {
+                                      insertMovie();
+                                    }
                                   },
                                   child: Text('Spremi'),
                                 ),
@@ -199,9 +305,19 @@ class _MoviesScreenState extends State<MoviesScreen> {
 
   Widget AddMovieForm({bool isEditing = false, Movie? movieToEdit}) {
     if (movieToEdit != null) {
-
+      _titleController.text = movieToEdit.title;
+      _descriptionController.text = movieToEdit.description;
+      _authorController.text = movieToEdit.author;
+      _relaseYearController.text = movieToEdit.releaseYear.toString() ?? '';
+      _durationController.text = movieToEdit.duration.toString() ?? '' ;
+      _pickedFile = null;
     } else {
-
+      _titleController.text ='';
+      _descriptionController.text = '';
+      _authorController.text = '';
+      _relaseYearController.text = '';
+      _durationController.text = '';
+      _pickedFile = null;
     }
 
     return Container(
@@ -211,6 +327,102 @@ class _MoviesScreenState extends State<MoviesScreen> {
         key: _formKey,
         child: Row(
           children: [
+            Expanded(
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(35),
+                    child: Column(children: [
+                      ValueListenableBuilder<File?>(
+                          valueListenable: _pickedFileNotifier,
+                          builder: (context, pickedFile, _) {
+                            return Container(
+                              alignment: Alignment.center,
+                              width: double.infinity,
+                              height: 180,
+                              color: Colors.teal,
+                              child: FutureBuilder<String>(
+                                future: _pickedFile != null
+                                    ? Future.value(_pickedFile!.path)
+                                    : loadPhoto(isEditing
+                                    ? (movieToEdit?.photo?.guidId ?? '')
+                                    : ''),
+                                builder: (BuildContext context,
+                                    AsyncSnapshot<String> snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return CircularProgressIndicator();
+                                  } else if (snapshot.hasError) {
+                                    return Text('Molimo odaberite fotografiju');
+                                  } else {
+                                    final imageUrl = snapshot.data;
+
+                                    if (imageUrl != null && imageUrl.isNotEmpty) {
+                                      return Container(
+                                        child: FadeInImage(
+                                          image: _pickedFile != null
+                                              ? FileImage(_pickedFile!)
+                                          as ImageProvider<Object>
+                                              : NetworkImage(
+                                            imageUrl,
+                                            headers:
+                                            Authorization.createHeaders(),
+                                          ) as ImageProvider<Object>,
+                                          placeholder:
+                                          MemoryImage(kTransparentImage),
+                                          fadeInDuration:
+                                          const Duration(milliseconds: 300),
+                                          fit: BoxFit.cover,
+                                          width: 230,
+                                          height: 200,
+                                        ),
+                                      );
+                                    } else {
+                                      return isEditing
+                                          ? Container(
+                                        padding: EdgeInsets.symmetric(
+                                            vertical: 8.0),
+                                        child: const Text(
+                                            'Please select an image'),
+                                      )
+                                          : Container(
+                                        padding: EdgeInsets.symmetric(
+                                            vertical: 8.0),
+                                        child: Image.asset(
+                                          'assets/images/default_user_image.jpg',
+                                          width: 230,
+                                          height: 200,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                              ),
+                            );
+                          }),
+                      const SizedBox(height: 35),
+                      Center(
+                        child: SizedBox(
+                          width: 150, // Širina dugmeta
+                          height: 35, // Visina dugmeta
+                          child: ElevatedButton(
+                            onPressed: () => _pickImage(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                    20.0), // Zaobljenost rubova
+                              ),
+                            ),
+                            child: Text('Select An Image',
+                                style:
+                                TextStyle(fontSize: 12, color: Colors.white)),
+                          ),
+                        ),
+                      )
+                    ]),
+                  ),
+                )),
             SizedBox(width: 30,),
             Expanded(
               child: Column(
@@ -352,13 +564,21 @@ class _MoviesScreenState extends State<MoviesScreen> {
       child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
-              columns: [
+              columns: const [
                 DataColumn(
                     label: Expanded(
                       flex: 2,
                       child: Text(
                         "ID",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
+                        style: TextStyle(fontStyle: FontStyle.normal),
+                      ),
+                    )),
+                DataColumn(
+                    label: Expanded(
+                      flex: 5,
+                      child: Text(
+                        "Slika",
+                        style: TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
                 DataColumn(
@@ -366,7 +586,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
                       flex: 5,
                       child: Text(
                         "Title",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
+                        style: TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
                 DataColumn(
@@ -374,7 +594,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
                       flex: 4,
                       child: Text(
                         "Author",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
+                        style: TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
                 DataColumn(
@@ -382,15 +602,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
                       flex: 2,
                       child: Text(
                         "ReleaseYear",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
-                      ),
-                    )),
-                DataColumn(
-                    label: Expanded(
-                      flex: 2,
-                      child: Text(
-                        "Length",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
+                        style: TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
                 DataColumn(
@@ -398,15 +610,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
                       flex: 2,
                       child: Text(
                         "Duration",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
-                      ),
-                    )),
-                DataColumn(
-                    label: Expanded(
-                      flex: 2,
-                      child: Text(
-                        "NumberOfViews",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
+                        style: TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
                 DataColumn(
@@ -414,7 +618,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
                       flex: 2,
                       child: Text(
                         "Production",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
+                        style: TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
                 DataColumn(
@@ -422,7 +626,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
                       flex: 2,
                       child: Text(
                         "",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
+                        style: TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
                 DataColumn(
@@ -430,7 +634,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
                       flex: 2,
                       child: Text(
                         "",
-                        style: const TextStyle(fontStyle: FontStyle.normal),
+                        style: TextStyle(fontStyle: FontStyle.normal),
                       ),
                     )),
               ],
@@ -439,16 +643,110 @@ class _MoviesScreenState extends State<MoviesScreen> {
                   DataRow(
                       cells: [
                         DataCell(Text(e.id?.toString() ?? "")),
+                        DataCell(
+                          Row(
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.only(right: 8.0),
+                                child: FutureBuilder<String>(
+                                  future: loadPhoto(
+                                      e.photo?.guidId ?? ''),
+                                  builder: (BuildContext context,
+                                      AsyncSnapshot<String> snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return CircularProgressIndicator();
+                                    } else if (snapshot.hasError) {
+                                      return const Text(
+                                          'Greška prilikom učitavanja slike');
+                                    } else {
+                                      final imageUrl = snapshot.data;
+
+                                      if (imageUrl != null &&
+                                          imageUrl.isNotEmpty) {
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 8.0),
+                                          child: FadeInImage(
+                                            image: NetworkImage(
+                                              imageUrl,
+                                              headers: Authorization
+                                                  .createHeaders(),
+                                            ),
+                                            placeholder: MemoryImage(
+                                                kTransparentImage),
+                                            fadeInDuration: const Duration(
+                                                milliseconds: 300),
+                                            fit: BoxFit.fill,
+                                            width: 50,
+                                            height: 100,
+                                          ),
+                                        );
+                                      } else {
+                                        null;
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 8.0),
+                                          child: Image.asset(
+                                            'assets/images/user1.jpg',
+                                            width: 80,
+                                            height: 105,
+                                            fit: BoxFit.fill,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                         DataCell(Text(e.title?.toString()  ?? "")),
                         DataCell(Text(e.author?.toString()  ?? "")),
                         DataCell(Text(e.releaseYear?.toString()  ?? "")),
-                        DataCell(Text(e.length?.toString()  ?? "")),
                         DataCell(Text(e.duration?.toString()  ?? "")),
-                        DataCell(Text(e.numberOfViews?.toString()  ?? "")),
                         DataCell(Text(e.production.name?.toString()  ?? "")),
                         DataCell(
                           ElevatedButton(
                             onPressed: () {
+                              setState(() {
+                                isEditing = true;
+                              });
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: Text(isEditing
+                                        ? 'Uredi film'
+                                        : 'Dodaj film'),
+                                    content: SingleChildScrollView(
+                                      child: AddMovieForm(
+                                          isEditing: isEditing,
+                                          movieToEdit:
+                                          e), // Prosleđivanje podataka o državi
+                                    ),
+                                    actions: <Widget>[
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          Navigator.of(context)
+                                              .pop(); // Zatvorite modal
+                                        },
+                                        child: Text('Zatvori'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          if (_formKey.currentState!
+                                              .validate()) {
+                                            editMovie(e.id);
+                                          }
+                                        },
+                                        child: Text('Spremi'),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
                             },
                             child: Text("Edit"),
                           ),
@@ -456,8 +754,34 @@ class _MoviesScreenState extends State<MoviesScreen> {
                         DataCell(
                           ElevatedButton(
                             onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: const Text("Izbrisi film"),
+                                    content: const SingleChildScrollView(
+                                        child: Text(
+                                            "Da li ste sigurni da zelite obisati film?")),
+                                    actions: <Widget>[
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          Navigator.of(context)
+                                              .pop(); // Zatvorite modal
+                                        },
+                                        child: const Text('Odustani'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          DeleteMovie(e.id);
+                                        },
+                                        child: const Text('Izbrisi'),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
                             },
-                            child: Text("Delete"),
+                            child: const Text("Delete"),
                           ),
                         ),
                       ]))

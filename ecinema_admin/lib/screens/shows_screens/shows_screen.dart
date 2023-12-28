@@ -1,12 +1,15 @@
 import 'package:ecinema_admin/models/cinema.dart';
 import 'package:ecinema_admin/models/movie.dart';
+import 'package:ecinema_admin/models/searchObject/show_search.dart';
 import 'package:ecinema_admin/models/shows.dart';
 import 'package:ecinema_admin/providers/movie_provider.dart';
 import 'package:ecinema_admin/providers/show_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../helpers/constants.dart';
 import '../../providers/cinema_provider.dart';
 import '../../utils/error_dialog.dart';
 
@@ -24,9 +27,10 @@ class _ShowsScreenState extends State<ShowsScreen> {
   late MovieProvider _movieProvider;
   late CinemaProvider _cinemaProvider;
   List<Cinema> cinemaList = <Cinema>[];
-  int? selectedCinema;
+  Cinema? selectedCinema;
   bool isEditing = false;
   final _formKey = GlobalKey<FormState>();
+  final TextEditingController _searchController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   TextEditingController _dateController = TextEditingController();
   TextEditingController _timeController = TextEditingController();
@@ -36,6 +40,12 @@ class _ShowsScreenState extends State<ShowsScreen> {
   int? selectedCinemaId;
   List<String> formats = ["2D", "3D", "Extreme", "4D"];
   String? selectedFormat;
+  List<Shows> selectedShow = <Shows>[];
+  bool isAllSelected = false;
+  int currentPage = 1;
+  int pageSize = 5;
+  int hasNextPage = 0;
+
   @override
   void initState() {
     super.initState();
@@ -57,11 +67,14 @@ class _ShowsScreenState extends State<ShowsScreen> {
     }
   }
 
-  void loadShows(int cinemaId) async {
+  void loadShows(
+      ShowSearchObject searchObject) async {
     try {
-      var showsResponse = await _showProvider.getPaged(cinemaId);
+      var showResponse =
+      await _showProvider.getPaged(searchObject: searchObject);
       setState(() {
-        shows = showsResponse;
+        shows = showResponse;
+        hasNextPage = shows.length;
       });
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -93,8 +106,14 @@ class _ShowsScreenState extends State<ShowsScreen> {
       var city = await _showProvider.insert(newShow);
       if (city == "OK") {
         Navigator.of(context).pop();
-        selectedCinema = selectedCinemaId;
-        loadShows(selectedCinemaId!);
+        loadShows(
+          ShowSearchObject(
+            name: _searchController.text,
+            cinemaId: null,
+            PageNumber: currentPage,
+            PageSize: pageSize,
+          ),
+        );
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -116,8 +135,14 @@ class _ShowsScreenState extends State<ShowsScreen> {
       var city = await _showProvider.edit(newShow);
       if (city == "OK") {
         Navigator.of(context).pop();
-        selectedCinema = selectedCinemaId;
-        loadShows(selectedCinemaId!);
+        loadShows(
+          ShowSearchObject(
+            name: _searchController.text,
+            cinemaId: null,
+            PageNumber: currentPage,
+            PageSize: pageSize,
+          ),
+        );
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -129,7 +154,14 @@ class _ShowsScreenState extends State<ShowsScreen> {
       var actor = await _showProvider.delete(id);
       if (actor == "OK") {
         Navigator.of(context).pop();
-        loadShows(1);
+        loadShows(
+          ShowSearchObject(
+            name: _searchController.text,
+            cinemaId: null,
+            PageNumber: currentPage,
+            PageSize: pageSize,
+          ),
+        );
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
@@ -139,88 +171,394 @@ class _ShowsScreenState extends State<ShowsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Container(
-          width: 1200,
+        appBar: AppBar(
+          title:const Text("Uposlenici"),
+        ),
+        body: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child:
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              buildFilterDropdowns(),
+              const SizedBox(height: 16.0),
+              BuildSearchField(context),
+              const SizedBox(
+                height: 10,
+              ),
+              buildDataList(context),
+              const SizedBox(
+                height: 10,
+              ),
+              buildPagination(),
+            ])));
+  }
+
+  Row BuildSearchField(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.teal),
+              borderRadius: BorderRadius.circular(10.0),
+            ),
+            width: 350,
+            height: 45,
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: "Pretraga",
+                border: const OutlineInputBorder(
+                  borderSide: BorderSide.none,
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
+                ),
+                suffixIcon: InkWell(
+                  onTap: () {},
+                  child: Container(
+                    padding: const EdgeInsets.all(defaultPadding * 0.75),
+                    margin: const EdgeInsets.symmetric(
+                        horizontal: defaultPadding / 2),
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                    ),
+                    child: SvgPicture.asset(
+                      "assets/icons/Search.svg",
+                      color: Colors.teal,
+                    ),
+                  ),
+                ),
+              ),
+            )),
+        const SizedBox(
+          width: 20,
+        ),
+        buildButtons(context),
+      ],
+    );
+  }
+
+  Row buildFilterDropdowns() {
+    return Row(
+      children: [
+        Expanded(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    width: 500,
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                          left: 136,
-                          top: 8,
-                          right: 8), // Margine za input polje
-                      child: DropdownButtonFormField<int>(
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white70,
-                          hintText: 'Izaberite kino',
-                        ),
-                        value: selectedCinema,
-                        items: cinemaList.map((Cinema cinema) {
-                          return DropdownMenuItem<int>(
-                            value: cinema.id,
-                            child: Text(cinema.name),
-                          );
-                        }).toList(),
-                        onChanged: (int? newValue) {
-                          setState(() {
-                            selectedCinema = newValue;
-                          });
-                          loadShows(selectedCinema!); // Pozovite funkciju sa odabranim kinom
-                        },
+              const Text('  Pretraga po kinima:'),
+              Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.teal),
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                child: DropdownButton<Cinema>(
+                  isExpanded: true,
+                  icon: const Icon(Icons.arrow_drop_down_outlined),
+                  value: selectedCinema,
+                  items: [
+                    const DropdownMenuItem<Cinema>(
+                      value: null,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Text('Svi'),
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.only(
-                        top: 8, right: 146), // Margine za dugme "Dodaj"
-                    child: ElevatedButton(
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: Text('Dodaj projekciju'),
-                              content: SingleChildScrollView(
-                                child: AddShowForm(),
-                              ),
-                              actions: <Widget>[
-                                ElevatedButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pop();
-                                  },
-                                  child: Text('Zatvori'),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    if (_formKey.currentState!.validate()) {
-                                      InsertShow();
-                                    }
-                                  },
-                                  child: Text('Spremi'),
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      },
-                      child: Text("Dodaj"),
-                    ),
-                  ),
-                ],
+                    ...cinemaList.map((Cinema cinema) {
+                      return DropdownMenuItem<Cinema>(
+                        value: cinema,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                          child: Text(cinema.name),
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                  onChanged: (Cinema? newValue) {
+                    setState(() {
+                      selectedCinema = newValue;
+                    });
+                    if (selectedCinema == null) {
+                      loadShows(
+                        ShowSearchObject(
+                          cinemaId: null,
+                          name: _searchController.text,
+                          PageNumber: currentPage,
+                          PageSize: pageSize,
+                        ),
+                      );
+                    } else {
+                      loadShows(
+                        ShowSearchObject(
+                          cinemaId: selectedCinema!.id,
+                          name: _searchController.text,
+                          PageNumber: currentPage,
+                          PageSize: pageSize,
+                        ),
+                      );
+                    }
+                  },
+                  underline: const Text(""),
+                ),
               ),
-              SizedBox(height: 20),
-              _buildDataListView()
             ],
           ),
         ),
-      ),
+      ],
+    );
+  }
+
+  Row buildButtons(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primaryColor,
+          ),
+          onPressed: () {
+            showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    backgroundColor: Colors.white,
+                    title: const Text("Dodaj projekciju"),
+                    content: SingleChildScrollView(
+                      child: AddShowForm(),
+                    ),
+                    actions: <Widget>[
+                      ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text("Zatvori",
+                              style: TextStyle(color: white))),
+                      ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                          ),
+                          onPressed: () {
+                            if (_formKey.currentState!.validate()) {
+                              InsertShow();
+                            }
+                          },
+                          child: const Text("Spremi",
+                              style: TextStyle(color: white)))
+                    ],
+                  );
+                });
+          },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(
+                Icons.add_outlined,
+                color: Colors.white,
+              ),
+              SizedBox(
+                width: 8,
+                height: 30,
+              ),
+              Text(
+                'Dodaj',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16.0),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primaryColor,
+          ),
+          onPressed: () {
+            if (selectedShow.isEmpty) {
+              showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: const Text("Upozorenje"),
+                      content: const Text(
+                          "Morate odabrati barem jednu projekciju za uređivanje"),
+                      actions: <Widget>[
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: Text("OK", style: TextStyle(color: white)),
+                        ),
+                      ],
+                    );
+                  });
+            } else if (selectedShow.length > 1) {
+              showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: const Text("Upozorenje"),
+                      content: const Text(
+                          "Odaberite samo jednu projekciju kojeg želite urediti"),
+                      actions: <Widget>[
+                        ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: primaryColor),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text("Ok",
+                                style: TextStyle(color: white)))
+                      ],
+                    );
+                  });
+            } else {
+              showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      backgroundColor: Colors.white,
+                      title: const Text("Uredi projekciju"),
+                      content: AddShowForm(
+                          isEditing: true, showToEdit: selectedShow[0]),
+                      actions: <Widget>[
+                        ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: primaryColor),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text("Zatvori",
+                                style: TextStyle(color: white))),
+                        ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: primaryColor),
+                            onPressed: () {
+                              EditShow(selectedShow[0].id);
+                              setState(() {
+                                selectedShow = [];
+                              });
+                            },
+                            child: const Text("Spremi",
+                                style: TextStyle(color: white))),
+                      ],
+                    );
+                  });
+            }
+          },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(
+                Icons.edit_outlined,
+                color: Colors.white,
+              ),
+              SizedBox(
+                width: 8,
+                height: 30,
+              ),
+              Text(
+                'Izmijeni',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16.0),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primaryColor,
+          ),
+          onPressed: selectedShow.isEmpty
+              ? () {
+            showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                      title: const Text("Upozorenje"),
+                      content: const Text(
+                          "Morate odabrati projekciju koju želite obrisati."),
+                      actions: <Widget>[
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text("OK",
+                              style: TextStyle(color: white)),
+                        ),
+                      ]);
+                });
+          }
+              : () {
+            showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: const Text("Izbriši projekciju!"),
+                    content: const SingleChildScrollView(
+                      child: Text(
+                          "Da li ste sigurni da želite obrisati projekciju?"),
+                    ),
+                    actions: <Widget>[
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: Text("Odustani",
+                            style: TextStyle(color: white)),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                        ),
+                        onPressed: () {
+                          for (Shows n in selectedShow) {
+                            DeleteShow(n.id);
+                          }
+                          Navigator.of(context).pop();
+                        },
+                        child: Text("Obriši",
+                            style: TextStyle(color: white)),
+                      ),
+                    ],
+                  );
+                });
+          },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(
+                Icons.delete_forever_outlined,
+                color: Colors.white,
+              ),
+              SizedBox(
+                width: 8,
+                height: 30,
+              ),
+              Text(
+                'Izbriši',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -245,8 +583,8 @@ class _ShowsScreenState extends State<ShowsScreen> {
     }
 
     return Container(
-      height: 550, // Povećao sam visinu da bi se prilagodili novi polja
-      width: 350,
+      height: 400, // Povećao sam visinu da bi se prilagodili novi polja
+      width: 700,
       child: Form(
         key: _formKey,
         child: Column(
@@ -296,7 +634,7 @@ class _ShowsScreenState extends State<ShowsScreen> {
             ),
             TextFormField(
               controller: _dateController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Datum',
                 hintText: 'Odaberite datum',
               ),
@@ -559,6 +897,137 @@ class _ShowsScreenState extends State<ShowsScreen> {
                           ]))
                       .toList() ??
                   [])),
+    );
+  }
+
+  Expanded buildDataList(BuildContext context) {
+    return Expanded(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        child: ConstrainedBox(
+          constraints:
+          BoxConstraints(minWidth: MediaQuery.of(context).size.width),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.teal, style: BorderStyle.solid),
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            child: DataTable(
+                dataRowHeight: 80,
+                dataRowColor: MaterialStateProperty.all(
+                    const Color.fromARGB(42, 241, 241, 241)),
+                columns: [
+                  DataColumn(
+                      label: Checkbox(
+                          value: isAllSelected,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              isAllSelected = value ?? false;
+                              shows.forEach((employeeItem) {
+                                employeeItem.isSelected = isAllSelected;
+                              });
+                              if (!isAllSelected) {
+                                selectedShow.clear();
+                              } else {
+                                selectedShow = List.from(shows);
+                              }
+                            });
+                          })),
+                  const DataColumn(
+                    label: Expanded(child: Text('Datum')),
+                  ),
+                  const DataColumn(
+                    label: Text('Početak'),
+                  ),
+                  const DataColumn(
+                    label: Text('Film'),
+                  ),
+                  const DataColumn(
+                    label: Text('Format'),
+                  ),
+                  const DataColumn(
+                    label: Text('Cijena'),
+                  ),
+                ],
+                rows: shows
+                    .map((Shows showItem) => DataRow(cells: [
+                  DataCell(
+                    Checkbox(
+                      value: showItem.isSelected,
+                      onChanged: (bool? value) {
+                        setState(() {
+                          showItem.isSelected = value ?? false;
+                          if (showItem.isSelected == true) {
+                            selectedShow.add(showItem);
+                          } else {
+                            selectedShow.remove(showItem);
+                          }
+                          isAllSelected =
+                              shows.every((u) => u.isSelected);
+                        });
+                      },
+                    ),
+                  ),
+                  DataCell(Text(showItem.date.toString())),
+                  DataCell(Text(showItem.startTime.toString())),
+                  DataCell(Text(showItem.movie.toString())),
+                  DataCell(Text(showItem.format.toString())),
+                  DataCell(Text(showItem.price.toString())),
+                ]))
+                    .toList() ??
+                    []),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget buildPagination() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+          onPressed: () {
+            if (currentPage > 1) {
+              setState(() {
+                currentPage--;
+              });
+              loadShows(
+                  ShowSearchObject(
+                    PageNumber: currentPage,
+                    PageSize: pageSize,
+                  ));
+            }
+          },
+          child: const Icon(
+            Icons.arrow_left_outlined,
+            color: white,
+          ),
+        ),
+        const SizedBox(width: 16),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+          onPressed: () {
+            setState(() {
+              if (hasNextPage == pageSize) {
+                currentPage++;
+              }
+            });
+            if (hasNextPage == pageSize) {
+              loadShows(
+                  ShowSearchObject(
+                      PageNumber: currentPage,
+                      PageSize: pageSize,
+                      name: _searchController.text));
+            }
+          },
+          child: const Icon(
+            Icons.arrow_right_outlined,
+            color: white,
+          ),
+        ),
+      ],
     );
   }
 }

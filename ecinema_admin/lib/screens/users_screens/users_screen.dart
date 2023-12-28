@@ -1,13 +1,16 @@
-import 'dart:convert';
+// ignore_for_file: use_build_context_synchronously, non_constant_identifier_names
+
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:ecinema_admin/models/user.dart';
 import 'package:ecinema_admin/providers/user_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:transparent_image/transparent_image.dart';
+import '../../helpers/constants.dart';
+import '../../models/searchObject/user_search.dart';
 import '../../providers/photo_provider.dart';
 import '../../utils/authorzation.dart';
 import '../../utils/error_dialog.dart';
@@ -22,6 +25,7 @@ class UsersScreen extends StatefulWidget {
 
 class _UsersScreenState extends State<UsersScreen> {
   List<User> users = <User>[];
+  List<User> selectedUsers = <User>[];
   late UserProvider _userProvider;
   late PhotoProvider _photoProvider;
   bool isEditing = false;
@@ -37,12 +41,16 @@ class _UsersScreenState extends State<UsersScreen> {
   late ValueNotifier<bool> _isVerifiedNotifier;
   ValueNotifier<File?> _pickedFileNotifier = ValueNotifier(null);
   DateTime selectedDate = DateTime.now();
+  String _selectedIsActive = 'Svi';
+  String _selectedIsVerified = 'Svi';
   int? selectedGender;
   int? selectedCinemaId;
-  int? selectedRole;
   bool _isActive = false;
   bool _isVerified = false;
-
+  bool isAllSelected = false;
+  int currentPage = 1;
+  int pageSize = 5;
+  int hasNextPage = 0;
   File? _pickedFile;
   File? selectedImage;
 
@@ -54,10 +62,23 @@ class _UsersScreenState extends State<UsersScreen> {
     _isActiveNotifier = ValueNotifier<bool>(_isActive);
     _isVerifiedNotifier = ValueNotifier<bool>(_isVerified);
     _pickedFileNotifier = ValueNotifier<File?>(_pickedFile);
-    loadUsers('');
+
+    loadUsers(
+      UserSearchObject(
+          name: _searchController.text,
+          PageSize: pageSize,
+          PageNumber: currentPage),
+      _selectedIsActive,
+      _selectedIsVerified,
+    );
+
     _searchController.addListener(() {
       final searchQuery = _searchController.text;
-      loadUsers(searchQuery);
+      loadUsers(
+          UserSearchObject(
+              name: searchQuery, PageNumber: currentPage, PageSize: pageSize),
+          _selectedIsActive,
+          _selectedIsVerified);
     });
   }
 
@@ -71,26 +92,34 @@ class _UsersScreenState extends State<UsersScreen> {
     }
   }
 
-  Future<String> loadPhoto(String guidId) async {
-    return await _photoProvider.getPhoto(guidId);
-  }
+  void loadUsers(UserSearchObject searchObject, String selectedIsActive,
+      String selectedIsVerified) async {
+    searchObject.isActive = selectedIsActive == 'Aktivni'
+        ? true
+        : selectedIsActive == 'Neaktivni'
+            ? false
+            : null;
 
-  void loadUsers(String? query) async {
-    var params;
+    searchObject.isVerified = selectedIsVerified == 'Verifikovani'
+        ? true
+        : selectedIsVerified == 'Neverifikovani'
+            ? false
+            : null;
+
     try {
-      if (query != null) {
-        params = query;
-      } else {
-        params = null;
-      }
-      var userResponse = await _userProvider.get({'params': params});
+      var usersResponse =
+          await _userProvider.getPaged(searchObject: searchObject);
       setState(() {
-        users = userResponse;
-        print(users);
+        users = usersResponse;
+        hasNextPage = users.length;
       });
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
     }
+  }
+
+  Future<String> loadPhoto(String guidId) async {
+    return await _photoProvider.getPhoto(guidId);
   }
 
   void insertUser() async {
@@ -100,14 +129,14 @@ class _UsersScreenState extends State<UsersScreen> {
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: Text('Alert'),
-              content: Text('Please select an image.'),
+              title: const Text('Alert'),
+              content: const Text('Please select an image.'),
               actions: [
                 TextButton(
                   onPressed: () {
-                    Navigator.pop(context);
+                    Navigator.pop(context); // Close the dialog
                   },
-                  child: Text('OK'),
+                  child: const Text('OK'),
                 ),
               ],
             );
@@ -123,8 +152,6 @@ class _UsersScreenState extends State<UsersScreen> {
         'Email': _emailController.text,
         'Password': _passwordController.text,
         'PhoneNumber': _phoneNumberController.text,
-        'Address': '',
-        'ProfessionalTitle': '',
         'Gender': selectedGender.toString(),
         'DateOfBirth':
             DateTime.parse(_birthDateController.text).toUtc().toIso8601String(),
@@ -134,29 +161,35 @@ class _UsersScreenState extends State<UsersScreen> {
         'IsActive': _isActive.toString(),
       };
 
-      // Add the photo to the user data
       userData['ProfilePhoto'] = http.MultipartFile.fromBytes(
         'ProfilePhoto',
         _pickedFile!.readAsBytesSync(),
         filename: 'profile_photo.jpg',
       );
 
-      // Send the request
       var response = await _userProvider.insertUser(userData);
 
       if (response == "OK") {
-        // Successful response
         Navigator.of(context).pop();
-        loadUsers('');
+        loadUsers(
+          UserSearchObject(
+            name: _searchController.text,
+            gender: null,
+            isActive: null,
+            isVerified: null,
+            PageNumber: currentPage,
+            PageSize: pageSize,
+          ),
+          _selectedIsActive,
+          _selectedIsVerified,
+        );
         setState(() {
           selectedGender = null;
         });
       } else {
-        // Handle error
         showErrorDialog(context, 'Greška prilikom dodavanja');
       }
     } catch (e) {
-      // Handle exceptions
       showErrorDialog(context, e.toString());
     }
   }
@@ -170,8 +203,6 @@ class _UsersScreenState extends State<UsersScreen> {
         'Email': _emailController.text,
         'Password': _passwordController.text,
         'PhoneNumber': _phoneNumberController.text,
-        'Address': '',
-        'ProfessionalTitle': '',
         'Gender': selectedGender.toString(),
         'DateOfBirth':
             DateTime.parse(_birthDateController.text).toUtc().toIso8601String(),
@@ -187,17 +218,26 @@ class _UsersScreenState extends State<UsersScreen> {
           filename: 'profile_photo.jpg',
         );
       }
-      // Send the request
       var response = await _userProvider.updateUser(userData);
 
       if (response == "OK") {
         Navigator.of(context).pop();
-        loadUsers('');
+        loadUsers(
+          UserSearchObject(
+            name: _searchController.text,
+            gender: null,
+            isActive: null,
+            isVerified: null,
+            PageNumber: currentPage,
+            PageSize: pageSize,
+          ),
+          _selectedIsActive,
+          _selectedIsVerified,
+        );
         setState(() {
           selectedGender = null;
         });
       } else {
-        // Handle error
         showErrorDialog(context, 'Greška prilikom uređivanja');
       }
     } catch (e) {
@@ -210,95 +250,685 @@ class _UsersScreenState extends State<UsersScreen> {
     try {
       var user = await _userProvider.delete(id);
       if (user == "OK") {
-        Navigator.of(context).pop();
-        loadUsers('');
+        loadUsers(UserSearchObject(name: _searchController.text),
+            _selectedIsActive, _selectedIsVerified);
       }
     } on Exception catch (e) {
       showErrorDialog(context, e.toString().substring(11));
     }
   }
 
-  Widget displayImage(String base64String) {
-    if (base64String == null) {
-      return Placeholder(); // Placeholder je samo primjer
-    } else {
-      List<int> bytes = base64Decode(base64String);
-
-      return Image.memory(
-        Uint8List.fromList(bytes),
-        fit: BoxFit.cover, // Prilagodite način prikaza slike
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Container(
-          child: Column(
-            children: [
-              SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    width: 380,
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                          left: 136,
-                          top: 8,
-                          right: 8), // Margine za input polje
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: 'Pretraga',
-                        ),
-                        // Dodajte logiku za pretragu ovde
-                      ),
+        appBar: AppBar(
+          title: const Text("Korisnici"),
+        ),
+        body: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              buildFilterDropdowns(),
+              const SizedBox(height: 16.0),
+              BuildSearchField(context),
+              const SizedBox(
+                height: 10,
+              ),
+              buildDataList(context),
+              const SizedBox(
+                height: 10,
+              ),
+              buildPagination(),
+            ])));
+  }
+
+  Row BuildSearchField(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.teal),
+              borderRadius: BorderRadius.circular(10.0),
+            ),
+            width: 350,
+            height: 45,
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: "Pretraga",
+                border: const OutlineInputBorder(
+                  borderSide: BorderSide.none,
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
+                ),
+                suffixIcon: InkWell(
+                  onTap: () {},
+                  child: Container(
+                    padding: const EdgeInsets.all(defaultPadding * 0.25),
+                    margin: const EdgeInsets.symmetric(
+                        horizontal: defaultPadding / 2),
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                    ),
+                    child: SvgPicture.asset(
+                      "assets/icons/Search.svg",
+                      color: Colors.teal,
                     ),
                   ),
-                  Padding(
-                    padding: EdgeInsets.only(
-                        top: 8, right: 146), // Margine za dugme "Dodaj"
-                    child: ElevatedButton(
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: Text('Dodaj korisnika'),
-                              content: SingleChildScrollView(
-                                child: AddUserForm(),
-                              ),
-                              actions: <Widget>[
-                                ElevatedButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pop();
-                                  },
-                                  child: Text('Zatvori'),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    if (_formKey.currentState!.validate()) {
-                                      insertUser();
-                                    }
-                                  },
-                                  child: Text('Spremi'),
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      },
-                      child: Text("Dodaj"),
+                ),
+              ),
+            )),
+        const SizedBox(
+          width: 20,
+        ),
+        buildButtons(context),
+      ],
+    );
+  }
+
+  Row buildFilterDropdowns() {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('  Spol:'),
+              Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.teal),
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                child: DropdownButton<int>(
+                  isExpanded: true,
+                  icon: const Icon(Icons.arrow_drop_down_outlined),
+                  value: selectedGender,
+                  items: <int?>[null, 0, 1].map((int? value) {
+                    return DropdownMenuItem<int>(
+                      value: value,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Text(value == null
+                            ? 'Svi'
+                            : value == 0
+                                ? 'Muški'
+                                : 'Ženski'),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (int? newValue) {
+                    setState(() {
+                      selectedGender = newValue;
+                      loadUsers(
+                          UserSearchObject(
+                              gender: selectedGender,
+                              name: _searchController.text,
+                              PageNumber: currentPage,
+                              PageSize: pageSize),
+                          _selectedIsActive,
+                          _selectedIsVerified);
+                    });
+                  },
+                  underline: Container(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('  Aktivni računi:'),
+              Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.teal),
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                child: DropdownButton<String>(
+                  isExpanded: true,
+                  hint: const Text("Aktivi racuni"),
+                  value: _selectedIsActive,
+                  icon: const Icon(Icons.arrow_drop_down_outlined),
+                  items:
+                      <String>['Svi', 'Aktivni', 'Neaktivni'].map((String a) {
+                    return DropdownMenuItem<String>(
+                      value: a,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Text(a),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedIsActive = newValue ?? 'Svi';
+                    });
+                    loadUsers(
+                        UserSearchObject(
+                            isActive: _selectedIsActive == 'Aktivni'
+                                ? true
+                                : _selectedIsActive == 'Neaktivni'
+                                    ? false
+                                    : null,
+                            name: _searchController.text,
+                            PageNumber: currentPage,
+                            PageSize: pageSize),
+                        _selectedIsActive,
+                        _selectedIsVerified);
+                  },
+                  underline: const Text(""),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('  Verifikovani računi:'),
+              Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.teal),
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                child: DropdownButton<String>(
+                  isExpanded: true,
+                  icon: const Icon(Icons.arrow_drop_down_outlined),
+                  value: _selectedIsVerified,
+                  items: <String>['Svi', 'Verifikovani', 'Neverifikovani']
+                      .map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Text(value),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedIsVerified = newValue ?? 'Svi';
+                    });
+                    loadUsers(
+                        UserSearchObject(
+                            isVerified: _selectedIsVerified == 'Verifikovani'
+                                ? true
+                                : _selectedIsVerified == 'Neverifikovani'
+                                    ? false
+                                    : null,
+                            name: _searchController.text,
+                            PageNumber: currentPage,
+                            PageSize: pageSize),
+                        _selectedIsActive,
+                        _selectedIsVerified);
+                  },
+                  underline: const Text(""),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Row buildButtons(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primaryColor,
+          ),
+          onPressed: () {
+            showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    backgroundColor: Colors.white,
+                    title: const Text("Dodaj korisnika"),
+                    content: SingleChildScrollView(
+                      child: AddUserForm(),
                     ),
+                    actions: <Widget>[
+                      ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _isActive = false;
+                              _isVerified = false;
+                            });
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text("Zatvori",
+                              style: TextStyle(color: white))),
+                      ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                          ),
+                          onPressed: () {
+                            if (_formKey.currentState!.validate()) {
+                              insertUser();
+                              setState(() {
+                                _isActive = false;
+                                _isVerified = false;
+                              });
+                            }
+                          },
+                          child: const Text("Spremi",
+                              style: TextStyle(color: white)))
+                    ],
+                  );
+                });
+          },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(
+                Icons.add_outlined,
+                color: Colors.white,
+                size: 18,
+              ),
+              SizedBox(
+                width: 8,
+                height: 30,
+              ),
+              Text(
+                'Dodaj',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16.0),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primaryColor,
+          ),
+          onPressed: () {
+            if (selectedUsers.isEmpty) {
+              showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: const Text("Upozorenje"),
+                      content: const Text(
+                          "Morate odabrati barem jednog klijenta za uređivanje"),
+                      actions: <Widget>[
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: Text("OK", style: TextStyle(color: white)),
+                        ),
+                      ],
+                    );
+                  });
+            } else if (selectedUsers.length > 1) {
+              showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: const Text("Upozorenje"),
+                      content: const Text(
+                          "Odaberite samo jednog klijenta kojeg želite urediti"),
+                      actions: <Widget>[
+                        ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: primaryColor),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text("Ok",
+                                style: TextStyle(color: white)))
+                      ],
+                    );
+                  });
+            } else {
+              showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      backgroundColor: Colors.white,
+                      title: const Text("Uredi klijenta"),
+                      content: AddUserForm(
+                          isEditing: true, userToEdit: selectedUsers[0]),
+                      actions: <Widget>[
+                        ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: primaryColor),
+                            onPressed: () {
+                              setState(() {
+                                _isActive = false;
+                                _isVerified = false;
+                              });
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text("Zatvori",
+                                style: TextStyle(color: white))),
+                        ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: primaryColor),
+                            onPressed: () {
+                              editUser(selectedUsers[0].id);
+                              setState(() {
+                                selectedUsers = [];
+                                _isActive = false;
+                                _isVerified = false;
+                              });
+                            },
+                            child: const Text("Spremi",
+                                style: TextStyle(color: white))),
+                      ],
+                    );
+                  });
+            }
+          },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(
+                Icons.edit_outlined,
+                color: Colors.white,
+                size: 18,
+              ),
+              SizedBox(
+                width: 8,
+                height: 30,
+              ),
+              Text(
+                'Izmjeni',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16.0),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primaryColor,
+          ),
+          onPressed: selectedUsers.isEmpty
+              ? () {
+                  showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                            title: const Text("Upozorenje"),
+                            content: const Text(
+                                "Morate odabrati klijenta kojeg želite obrisati."),
+                            actions: <Widget>[
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primaryColor,
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                                child: const Text("OK",
+                                    style: TextStyle(color: white)),
+                              ),
+                            ]);
+                      });
+                }
+              : () {
+                  showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: const Text("Izbriši klijenta!"),
+                          content: const SingleChildScrollView(
+                            child: Text(
+                                "Da li ste sigurni da želite obrisati klijenta?"),
+                          ),
+                          actions: <Widget>[
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: primaryColor,
+                              ),
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                              child: Text("Odustani",
+                                  style: TextStyle(color: white)),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                              ),
+                              onPressed: () {
+                                for (User n in selectedUsers) {
+                                  DeleteUser(n.id);
+                                }
+                                Navigator.of(context).pop();
+                              },
+                              child: Text("Obriši",
+                                  style: TextStyle(color: white)),
+                            ),
+                          ],
+                        );
+                      });
+                },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(
+                Icons.delete_forever_outlined,
+                color: Colors.white,
+                size: 18,
+              ),
+              SizedBox(
+                width: 8,
+                height: 30,
+              ),
+              Text(
+                'Izbriši',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Expanded buildDataList(BuildContext context) {
+    return Expanded(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        child: ConstrainedBox(
+          constraints:
+              BoxConstraints(minWidth: MediaQuery.of(context).size.width),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.teal, style: BorderStyle.solid),
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            child: DataTable(
+                dataRowHeight: 80,
+                dataRowColor: MaterialStateProperty.all(
+                    const Color.fromARGB(42, 241, 241, 241)),
+                columns: [
+                  DataColumn(
+                      label: Checkbox(
+                          value: isAllSelected,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              isAllSelected = value ?? false;
+                              users.forEach((userItem) {
+                                userItem.isSelected = isAllSelected;
+                              });
+                              if (!isAllSelected) {
+                                selectedUsers.clear();
+                              } else {
+                                selectedUsers = List.from(users);
+                              }
+                            });
+                          })),
+                  const DataColumn(
+                    label: Expanded(child: Text('Ime i prezime')),
+                  ),
+                  const DataColumn(
+                    label: Text('Slika'),
+                  ),
+                  const DataColumn(
+                    label: Expanded(child: Text('Broj telefona')),
+                  ),
+                  const DataColumn(
+                    label: Text('Email'),
+                  ),
+                  const DataColumn(
+                    label: Text('Spol'),
+                  ),
+                  const DataColumn(
+                    label: Text('Aktivan'),
+                  ),
+                  const DataColumn(
+                    label: Text('Verifikovan'),
                   ),
                 ],
-              ),
-              SizedBox(height: 20),
-              _buildDataListView()
-            ],
+                rows: users
+                        .map((User userItem) => DataRow(cells: [
+                              DataCell(
+                                Checkbox(
+                                  value: userItem.isSelected,
+                                  onChanged: (bool? value) {
+                                    setState(() {
+                                      userItem.isSelected = value ?? false;
+                                      if (userItem.isSelected == true) {
+                                        selectedUsers.add(userItem);
+                                      } else {
+                                        selectedUsers.remove(userItem);
+                                      }
+                                      isAllSelected =
+                                          users.every((u) => u.isSelected);
+                                    });
+                                  },
+                                ),
+                              ),
+                              DataCell(Text(
+                                  ("${userItem.firstName.toString()} ${userItem.lastName.toString()}"))),
+                              DataCell(
+                                Row(
+                                  children: [
+                                    Padding(
+                                      padding:
+                                          const EdgeInsets.only(right: 8.0),
+                                      child: FutureBuilder<String>(
+                                        future: loadPhoto(
+                                            userItem.profilePhoto?.guidId ??
+                                                ''),
+                                        builder: (BuildContext context,
+                                            AsyncSnapshot<String> snapshot) {
+                                          if (snapshot.connectionState ==
+                                              ConnectionState.waiting) {
+                                            return const CircularProgressIndicator();
+                                          } else if (snapshot.hasError) {
+                                            return const Text(
+                                                'Greška prilikom učitavanja slike');
+                                          } else {
+                                            final imageUrl = snapshot.data;
+
+                                            if (imageUrl != null &&
+                                                imageUrl.isNotEmpty) {
+                                              return Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 8.0),
+                                                child: FadeInImage(
+                                                  image: NetworkImage(
+                                                    imageUrl,
+                                                    headers: Authorization
+                                                        .createHeaders(),
+                                                  ),
+                                                  placeholder: MemoryImage(
+                                                      kTransparentImage),
+                                                  fadeInDuration:
+                                                      const Duration(
+                                                          milliseconds: 300),
+                                                  fit: BoxFit.fill,
+                                                  width: 80,
+                                                  height: 105,
+                                                ),
+                                              );
+                                            } else {
+                                              return Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 8.0),
+                                                child: Image.asset(
+                                                  'assets/images/user2.png',
+                                                  width: 80,
+                                                  height: 105,
+                                                  fit: BoxFit.fill,
+                                                ),
+                                              );
+                                            }
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              DataCell(Center(
+                                child: Text(
+                                    userItem.phoneNumber?.toString() ?? ""),
+                              )),
+                              DataCell(Text(userItem.email.toString())),
+                              DataCell(Text(
+                                  userItem.gender == 0 ? "Male" : "Female")),
+                              DataCell(Container(
+                                alignment: Alignment.center,
+                                child: userItem.isActive == true
+                                    ? const Icon(
+                                        Icons.check_circle_outline,
+                                        color: green,
+                                        size: 30,
+                                      )
+                                    : const Icon(
+                                        Icons.close_outlined,
+                                        color: Colors.red,
+                                        size: 30,
+                                      ),
+                              )),
+                              DataCell(Container(
+                                alignment: Alignment.center,
+                                child: userItem.isVerified == true
+                                    ? const Icon(
+                                        Icons.check_circle_outline,
+                                        color: green,
+                                        size: 30,
+                                      )
+                                    : const Icon(
+                                        Icons.close_outlined,
+                                        color: Colors.red,
+                                        size: 30,
+                                      ),
+                              )),
+                            ]))
+                        .toList() ??
+                    []),
           ),
         ),
       ),
@@ -330,7 +960,7 @@ class _UsersScreenState extends State<UsersScreen> {
       _pickedFile = null;
     }
 
-    return Container(
+    return SizedBox(
       height: 450,
       width: 950,
       child: Form(
@@ -360,44 +990,40 @@ class _UsersScreenState extends State<UsersScreen> {
                                 AsyncSnapshot<String> snapshot) {
                               if (snapshot.connectionState ==
                                   ConnectionState.waiting) {
-                                return CircularProgressIndicator();
+                                return const CircularProgressIndicator();
                               } else if (snapshot.hasError) {
-                                return Text('Molimo odaberite fotografiju');
+                                return const Text(
+                                  'Molimo odaberite fotografiju',
+                                  style: TextStyle(color: Colors.white),
+                                );
                               } else {
                                 final imageUrl = snapshot.data;
 
                                 if (imageUrl != null && imageUrl.isNotEmpty) {
-                                  return Container(
-                                    child: FadeInImage(
-                                      image: _pickedFile != null
-                                          ? FileImage(_pickedFile!)
-                                              as ImageProvider<Object>
-                                          : NetworkImage(
-                                              imageUrl,
-                                              headers:
-                                                  Authorization.createHeaders(),
-                                            ) as ImageProvider<Object>,
-                                      placeholder:
-                                          MemoryImage(kTransparentImage),
-                                      fadeInDuration:
-                                          const Duration(milliseconds: 300),
-                                      fit: BoxFit.cover,
-                                      width: 230,
-                                      height: 200,
-                                    ),
+                                  return FadeInImage(
+                                    image: _pickedFile != null
+                                        ? FileImage(_pickedFile!)
+                                        : NetworkImage(
+                                            imageUrl,
+                                            headers:
+                                                Authorization.createHeaders(),
+                                          ) as ImageProvider<Object>,
+                                    placeholder: MemoryImage(kTransparentImage),
+                                    fadeInDuration:
+                                        const Duration(milliseconds: 300),
+                                    fit: BoxFit.cover,
+                                    width: 230,
+                                    height: 200,
                                   );
                                 } else {
-                                  // Ako uređujete korisnika, pokažite poruku za odabir slike
-                                  // Inače, prikažite podrazumevanu sliku iz assetsa
                                   return isEditing
                                       ? Container(
-                                          padding: EdgeInsets.symmetric(
+                                          padding: const EdgeInsets.symmetric(
                                               vertical: 8.0),
-                                          child: const Text(
-                                              'Please select an image'),
+                                          child: const Text('Odaberite sliku'),
                                         )
                                       : Container(
-                                          padding: EdgeInsets.symmetric(
+                                          padding: const EdgeInsets.symmetric(
                                               vertical: 8.0),
                                           child: Image.asset(
                                             'assets/images/default_user_image.jpg',
@@ -415,27 +1041,25 @@ class _UsersScreenState extends State<UsersScreen> {
                   const SizedBox(height: 35),
                   Center(
                     child: SizedBox(
-                      width: 150, // Širina dugmeta
-                      height: 35, // Visina dugmeta
+                      width: 150,
+                      height: 35,
                       child: ElevatedButton(
                         onPressed: () => _pickImage(),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
+                          backgroundColor: primaryColor,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                                20.0), // Zaobljenost rubova
+                            borderRadius: BorderRadius.circular(20.0),
                           ),
                         ),
-                        child: Text('Select An Image',
-                            style:
-                                TextStyle(fontSize: 12, color: Colors.white)),
+                        child: const Text('Odaberite sliku',
+                            style: TextStyle(fontSize: 12, color: white)),
                       ),
                     ),
                   )
                 ]),
               ),
             )),
-            SizedBox(
+            const SizedBox(
               width: 30,
             ),
             Expanded(
@@ -444,7 +1068,7 @@ class _UsersScreenState extends State<UsersScreen> {
                 children: [
                   TextFormField(
                     controller: _firstNameController,
-                    decoration: InputDecoration(labelText: 'Ime'),
+                    decoration: const InputDecoration(labelText: 'Ime'),
                     validator: (value) {
                       if (value!.isEmpty) {
                         return 'Unesite ime!';
@@ -454,7 +1078,7 @@ class _UsersScreenState extends State<UsersScreen> {
                   ),
                   TextFormField(
                     controller: _lastNameController,
-                    decoration: InputDecoration(labelText: 'Prezime'),
+                    decoration: const InputDecoration(labelText: 'Prezime'),
                     validator: (value) {
                       if (value!.isEmpty) {
                         return 'Unesite prezime!';
@@ -464,7 +1088,7 @@ class _UsersScreenState extends State<UsersScreen> {
                   ),
                   TextFormField(
                     controller: _emailController,
-                    decoration: InputDecoration(labelText: 'Email'),
+                    decoration: const InputDecoration(labelText: 'Email'),
                     validator: (value) {
                       if (value!.isEmpty) {
                         return 'Unesite email!';
@@ -478,7 +1102,7 @@ class _UsersScreenState extends State<UsersScreen> {
                   ),
                   TextFormField(
                     controller: _phoneNumberController,
-                    decoration: InputDecoration(labelText: 'Broj'),
+                    decoration: const InputDecoration(labelText: 'Broj'),
                     validator: (value) {
                       if (value!.isEmpty) {
                         return 'Unesite broj!';
@@ -488,12 +1112,12 @@ class _UsersScreenState extends State<UsersScreen> {
                   ),
                   TextFormField(
                     controller: _passwordController,
-                    decoration: InputDecoration(labelText: 'Sifra'),
+                    decoration: const InputDecoration(labelText: 'Sifra'),
                   ),
                 ],
               ),
             ),
-            SizedBox(
+            const SizedBox(
               width: 30,
             ),
             Expanded(
@@ -502,7 +1126,7 @@ class _UsersScreenState extends State<UsersScreen> {
                 children: [
                   TextFormField(
                     controller: _birthDateController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Datum',
                       hintText: 'Odaberite datum', // Dodajte hintText ovde
                     ),
@@ -536,7 +1160,7 @@ class _UsersScreenState extends State<UsersScreen> {
                         selectedGender = newValue!;
                       });
                     },
-                    items: [
+                    items: const [
                       DropdownMenuItem<int>(
                         value: null,
                         child: Text('Odaberi spol'),
@@ -550,7 +1174,7 @@ class _UsersScreenState extends State<UsersScreen> {
                         child: Text('Ženski'),
                       ),
                     ],
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Spol',
                     ),
                     validator: (value) {
@@ -560,7 +1184,7 @@ class _UsersScreenState extends State<UsersScreen> {
                       return null;
                     },
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 20,
                   ),
                   ValueListenableBuilder<bool>(
@@ -576,12 +1200,12 @@ class _UsersScreenState extends State<UsersScreen> {
                               _isActive = _isActiveNotifier.value;
                             },
                           ),
-                          Text('Aktivan'),
+                          const Text('Aktivan'),
                         ],
                       );
                     },
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 10,
                   ),
                   ValueListenableBuilder<bool>(
@@ -597,7 +1221,7 @@ class _UsersScreenState extends State<UsersScreen> {
                               _isVerified = _isVerifiedNotifier.value;
                             },
                           ),
-                          Text('Verifikovan'),
+                          const Text('Verifikovan'),
                         ],
                       );
                     },
@@ -611,262 +1235,56 @@ class _UsersScreenState extends State<UsersScreen> {
     );
   }
 
-  Widget _buildDataListView() {
-    return Expanded(
-      child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-              columns: [
-                DataColumn(
-                    label: Expanded(
-                  flex: 2,
-                  child: Text(
-                    "ID",
-                    style: const TextStyle(fontStyle: FontStyle.normal),
+  Widget buildPagination() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+          onPressed: () {
+            if (currentPage > 1) {
+              setState(() {
+                currentPage--;
+              });
+              loadUsers(
+                  UserSearchObject(
+                    PageNumber: currentPage,
+                    PageSize: pageSize,
                   ),
-                )),
-                DataColumn(
-                    label: Expanded(
-                  flex: 5,
-                  child: Text(
-                    "Slika",
-                    style: const TextStyle(fontStyle: FontStyle.normal),
-                  ),
-                )),
-                DataColumn(
-                    label: Expanded(
-                  flex: 5,
-                  child: Text(
-                    "FirstName",
-                    style: const TextStyle(fontStyle: FontStyle.normal),
-                  ),
-                )),
-                DataColumn(
-                    label: Expanded(
-                  flex: 4,
-                  child: Text(
-                    "LastName",
-                    style: const TextStyle(fontStyle: FontStyle.normal),
-                  ),
-                )),
-                DataColumn(
-                    label: Expanded(
-                  flex: 4,
-                  child: Text(
-                    "Email",
-                    style: const TextStyle(fontStyle: FontStyle.normal),
-                  ),
-                )),
-                DataColumn(
-                    label: Expanded(
-                  flex: 4,
-                  child: Text(
-                    "PhoneNumber",
-                    style: const TextStyle(fontStyle: FontStyle.normal),
-                  ),
-                )),
-                DataColumn(
-                    label: Expanded(
-                  flex: 4,
-                  child: Text(
-                    "BirthDate",
-                    style: const TextStyle(fontStyle: FontStyle.normal),
-                  ),
-                )),
-                DataColumn(
-                    label: Expanded(
-                  flex: 4,
-                  child: Text(
-                    "Gender",
-                    style: const TextStyle(fontStyle: FontStyle.normal),
-                  ),
-                )),
-                DataColumn(
-                    label: Expanded(
-                  flex: 4,
-                  child: Text(
-                    "isActive",
-                    style: const TextStyle(fontStyle: FontStyle.normal),
-                  ),
-                )),
-                DataColumn(
-                    label: Expanded(
-                  flex: 4,
-                  child: Text(
-                    "isVerified",
-                    style: const TextStyle(fontStyle: FontStyle.normal),
-                  ),
-                )),
-                DataColumn(
-                    label: Expanded(
-                  flex: 2,
-                  child: Text(
-                    "",
-                    style: const TextStyle(fontStyle: FontStyle.normal),
-                  ),
-                )),
-                DataColumn(
-                    label: Expanded(
-                  flex: 2,
-                  child: Text(
-                    "",
-                    style: const TextStyle(fontStyle: FontStyle.normal),
-                  ),
-                )),
-              ],
-              rows: users
-                      .map((User e) => DataRow(cells: [
-                            DataCell(Text(e.id?.toString() ?? "")),
-                            DataCell(
-                              Row(
-                                children: [
-                                  Padding(
-                                    padding: EdgeInsets.only(right: 8.0),
-                                    child: FutureBuilder<String>(
-                                      future: loadPhoto(
-                                          e.profilePhoto?.guidId ?? ''),
-                                      builder: (BuildContext context,
-                                          AsyncSnapshot<String> snapshot) {
-                                        if (snapshot.connectionState ==
-                                            ConnectionState.waiting) {
-                                          return CircularProgressIndicator();
-                                        } else if (snapshot.hasError) {
-                                          return Text(
-                                              'Greška prilikom učitavanja slike');
-                                        } else {
-                                          final imageUrl = snapshot.data;
-
-                                          if (imageUrl != null &&
-                                              imageUrl.isNotEmpty) {
-                                            return Container(
-                                              padding: EdgeInsets.symmetric(
-                                                  vertical: 8.0),
-                                              child: FadeInImage(
-                                                image: NetworkImage(
-                                                  imageUrl,
-                                                  headers: Authorization
-                                                      .createHeaders(),
-                                                ),
-                                                placeholder: MemoryImage(
-                                                    kTransparentImage),
-                                                fadeInDuration: const Duration(
-                                                    milliseconds: 300),
-                                                fit: BoxFit.fill,
-                                                width: 80,
-                                                height: 105,
-                                              ),
-                                            );
-                                          } else {
-                                            null;
-                                            return Container(
-                                              padding: EdgeInsets.symmetric(
-                                                  vertical: 8.0),
-                                              child: Image.asset(
-                                                'assets/images/user1.jpg',
-                                                width: 80,
-                                                height: 105,
-                                                fit: BoxFit.fill,
-                                              ),
-                                            );
-                                          }
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            DataCell(Text(e.firstName?.toString() ?? "")),
-                            DataCell(Text(e.lastName?.toString() ?? "")),
-                            DataCell(Text(e.email?.toString() ?? "")),
-                            DataCell(Text(e.phoneNumber?.toString() ?? "")),
-                            DataCell(Text(
-                                '${DateFormat('dd.MM.yyyy').format(DateTime.parse(e.birthDate))}'
-                                        ?.toString() ??
-                                    "")),
-                            DataCell(Text(e.gender == 0 ? "Male" : "Female")),
-                            DataCell(Text(e.isActive?.toString() ?? "")),
-                            DataCell(Text(e.isVerified?.toString() ?? "")),
-                            DataCell(
-                              ElevatedButton(
-                                onPressed: () {
-                                  setState(() {
-                                    isEditing = true;
-                                  });
-                                  showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return AlertDialog(
-                                        title: Text(isEditing
-                                            ? 'Uredi korisnika'
-                                            : 'Dodaj korisnika'),
-                                        content: SingleChildScrollView(
-                                          child: AddUserForm(
-                                              isEditing: isEditing,
-                                              userToEdit:
-                                                  e), // Prosleđivanje podataka o državi
-                                        ),
-                                        actions: <Widget>[
-                                          ElevatedButton(
-                                            onPressed: () {
-                                              Navigator.of(context)
-                                                  .pop(); // Zatvorite modal
-                                            },
-                                            child: Text('Zatvori'),
-                                          ),
-                                          ElevatedButton(
-                                            onPressed: () {
-                                              if (_formKey.currentState!
-                                                  .validate()) {
-                                                editUser(e.id);
-                                              }
-                                            },
-                                            child: Text('Spremi'),
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  );
-                                },
-                                child: Text("Edit"),
-                              ),
-                            ),
-                            DataCell(
-                              ElevatedButton(
-                                onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return AlertDialog(
-                                        title: Text("Izbrisi korisnika"),
-                                        content: SingleChildScrollView(
-                                            child: Text(
-                                                "Da li ste sigurni da zelite obisati korisnika?")),
-                                        actions: <Widget>[
-                                          ElevatedButton(
-                                            onPressed: () {
-                                              Navigator.of(context)
-                                                  .pop(); // Zatvorite modal
-                                            },
-                                            child: Text('Odustani'),
-                                          ),
-                                          ElevatedButton(
-                                            onPressed: () {
-                                              DeleteUser(e.id);
-                                            },
-                                            child: Text('Izbrisi'),
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  );
-                                },
-                                child: Text("Delete"),
-                              ),
-                            ),
-                          ]))
-                      .toList() ??
-                  [])),
+                  _selectedIsActive,
+                  _selectedIsVerified);
+            }
+          },
+          child: const Icon(
+            Icons.arrow_left_outlined,
+            color: white,
+          ),
+        ),
+        const SizedBox(width: 16),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+          onPressed: () {
+            setState(() {
+              if (hasNextPage == pageSize) {
+                currentPage++;
+              }
+            });
+            if (hasNextPage == pageSize) {
+              loadUsers(
+                  UserSearchObject(
+                      PageNumber: currentPage,
+                      PageSize: pageSize,
+                      name: _searchController.text),
+                  _selectedIsActive,
+                  _selectedIsVerified);
+            }
+          },
+          child: const Icon(
+            Icons.arrow_right_outlined,
+            color: white,
+          ),
+        ),
+      ],
     );
   }
 }

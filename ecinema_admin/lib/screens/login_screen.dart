@@ -1,9 +1,6 @@
 import 'package:ecinema_admin/providers/login_provider.dart';
-import 'package:ecinema_admin/screens/home_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
-import '../providers/user_provider.dart';
 import '../utils/error_dialog.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -44,11 +41,13 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.teal,
       body: Form(
         key: _formKey,
         child: Center(
           child: Container(
-            constraints: BoxConstraints(maxWidth: 450),
+            color:Colors.teal,
+            constraints: const BoxConstraints(maxWidth: 450),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Card(
@@ -61,8 +60,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(height: 10,),
-                      Text(
+                      const SizedBox(height: 10,),
+                      const Text(
                         "Welcome",
                         style: TextStyle(
                           fontSize: 24,
@@ -72,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 30),
                       TextFormField(
                         controller: _emailController,
-                        keyboardType: TextInputType.emailAddress, // Promijenite tip tastature na email
+                        keyboardType: TextInputType.emailAddress,
                         validator: (value) {
                           if (value!.isEmpty) {
                             return 'Unesite email!';
@@ -91,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextFormField(
                         controller: _passwordController,
                         keyboardType: TextInputType.visiblePassword,
-                        obscureText: _obscurePassword, // Koristite atribut za skrivanje šifre
+                        obscureText: _obscurePassword,
                         validator: (value) {
                           if (value!.isEmpty) {
                             return 'Unesite šifru!';
@@ -123,8 +122,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: double.infinity,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            primary: Colors.teal, // Promijenite boju dugmeta
-                            onPrimary: Colors.white, // Promijenite boju teksta na dugmetu
+                            primary: Colors.teal,
+                            onPrimary: Colors.white,
                             minimumSize: const Size.fromHeight(55),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
@@ -147,6 +146,5 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
-
   }
 }

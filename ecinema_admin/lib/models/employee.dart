@@ -1,4 +1,6 @@
 
+import 'package:ecinema_admin/models/photo.dart';
+
 class Employee {
   late int id;
   late String firstName;
@@ -9,6 +11,8 @@ class Employee {
   late bool isActive;
   late int? profilePhotoId;
   late int cinemaId;
+  late Photo? profilePhoto;
+  late bool isSelected = false;
 
   Employee({
     required this.id,
@@ -20,6 +24,8 @@ class Employee {
     required this.isActive,
     this.profilePhotoId,
     required this.cinemaId,
+     this.profilePhoto,
+    required this.isSelected,
   });
 
 
@@ -33,6 +39,11 @@ class Employee {
     isActive = json['isActive'];
     profilePhotoId = json['profilePhotoId'];
     cinemaId = json['cinemaId'];
+    if (json['profilePhoto'] != null) {
+      profilePhoto = Photo.fromJson(json['profilePhoto']);
+    } else {
+      profilePhoto = null;
+    }
   }
 
   Map<String, dynamic> toJson() {

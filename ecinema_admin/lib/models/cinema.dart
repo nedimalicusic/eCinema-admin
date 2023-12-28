@@ -13,6 +13,7 @@ class Cinema {
   late int numberOfSeats;
   late int cityId;
   late City city;
+  late bool isSelected = false;
 
   Cinema(
       {required this.id,
@@ -23,6 +24,7 @@ class Cinema {
         required this.phoneNumber,
         required this.cityId,
         required this.city,
+        required this.isSelected,
         required this.numberOfSeats});
 
   Cinema.fromJson(Map<String, dynamic> json) {

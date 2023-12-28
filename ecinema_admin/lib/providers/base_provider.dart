@@ -16,6 +16,7 @@ abstract class BaseProvider<T> with ChangeNotifier {
       uri = uri.replace(queryParameters: {'name': params.values});
     }
     final response = await http.get(uri, headers: headers);
+    print(response.body);
     if (response.statusCode == 200) {
       var data = json.decode(response.body);
       var items = data['items'];

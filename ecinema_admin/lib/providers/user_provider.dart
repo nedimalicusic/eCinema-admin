@@ -2,6 +2,7 @@ import 'package:http/http.dart' as http;
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'dart:convert';
 import '../helpers/constants.dart';
+import '../models/searchObject/user_search.dart';
 import '../models/user.dart';
 import '../utils/authorzation.dart';
 import 'base_provider.dart';
@@ -113,6 +114,46 @@ class UserProvider extends BaseProvider<User>  {
       throw Exception('Error inserting user: $e');
     }
   }
+
+  Future<List<User>> getPaged({UserSearchObject? searchObject}) async {
+    var uri = Uri.parse('$apiUrl/User/GetPaged');
+    var headers = Authorization.createHeaders();
+    final Map<String, String> queryParameters = {};
+
+    if (searchObject != null) {
+      if (searchObject.name != null) {
+        queryParameters['name'] = searchObject.name!;
+      }
+
+      if (searchObject.gender != null) {
+        queryParameters['gender'] = searchObject.gender.toString();
+      }
+
+      if (searchObject.isActive != null) {
+        queryParameters['isActive'] = searchObject.isActive.toString();
+      }
+      if (searchObject.isVerified != null) {
+        queryParameters['isVerified'] = searchObject.isVerified.toString();
+      }
+      if (searchObject.PageNumber != null) {
+        queryParameters['pageNumber'] = searchObject.PageNumber.toString();
+      }
+      if (searchObject.PageSize != null) {
+        queryParameters['pageSize'] = searchObject.PageSize.toString();
+      }
+    }
+
+    uri = uri.replace(queryParameters: queryParameters);
+    final response = await http.get(uri, headers: headers);
+    if (response.statusCode == 200) {
+      var data = json.decode(response.body);
+      var items = data['items'];
+      return items.map((d) => fromJson(d)).cast<User>().toList();
+    } else {
+      throw Exception('Failed to load data');
+    }
+  }
+
 
   Future<dynamic> updateUser(Map<String, dynamic> updatedUserData) async {
     try {

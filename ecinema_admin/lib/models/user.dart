@@ -15,6 +15,7 @@ class User {
   late bool isActive;
   late bool isVerified;
   late Photo? profilePhoto;
+  late bool isSelected = false;
 
   User({
     required this.id,
@@ -30,6 +31,7 @@ class User {
     this.token,
     this.role,
     this.profilePhoto,
+    required this.isSelected,
   });
 
 

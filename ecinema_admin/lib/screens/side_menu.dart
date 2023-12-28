@@ -3,15 +3,15 @@ import 'package:ecinema_admin/screens/cities_screens/city_screen.dart';
 import 'package:ecinema_admin/screens/countries_screens/counry_screen.dart';
 import 'package:ecinema_admin/screens/languages_screens/langauge_screen.dart';
 import 'package:ecinema_admin/screens/productions_screens/productions_screen.dart';
+import 'package:ecinema_admin/screens/reports_screens/reports_screen.dart';
 import 'package:ecinema_admin/screens/reservations_screens/reservations_screen.dart';
 import 'package:ecinema_admin/screens/shows_screens/shows_screen.dart';
 import 'package:ecinema_admin/screens/users_screens/users_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/login_provider.dart';
-import '../providers/user_provider.dart';
-import 'actors_screens/actors_screen.dart';
 import 'cinema_screens/cinemas_screen.dart';
 import 'dashboard_screen.dart';
 import 'employees_screens/employees_screen.dart';
@@ -39,20 +39,11 @@ class _SideMenuState extends State<SideMenu> {
   @override
   void initState() {
     super.initState();
-
     loginUserProvider = context.read<LoginProvider>();
   }
 
   @override
   Widget build(BuildContext context) {
-    loginUser = context.watch<LoginProvider>().loginUser;
-    if (loginUser == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pushReplacementNamed(LoginScreen.routeName);
-      });
-      return Container();
-    }
-
     return Drawer(
       backgroundColor: Colors.teal,
       child: Column(
@@ -60,146 +51,147 @@ class _SideMenuState extends State<SideMenu> {
           Expanded(
             child: ListView(
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 12.0), // Dodajte vertikalnu marginu ovde
+                Container(
+                  margin: const EdgeInsets.only(top: 20),
+                  child:  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.slow_motion_video_rounded,color: Colors.white, size: 24),
+                      SizedBox(width: 8,),
+                      Text("eCinema",style: TextStyle(color: Colors.white,fontSize: 22),)
+                    ],
+                  ),
                 ),
-                ListTile(
-                  leading: Icon(Icons.dashboard, color: Colors.white,),
-                  title: Text("Dashboard",style: TextStyle(color: Colors.white),),
-                  onTap: () {
-                    widget.onMenuItemClicked(DashboardScreen());
+                const Padding(
+                  padding: EdgeInsets.symmetric(
+                      vertical: 12.0),
+                ),
+                DrawerListTile(
+                  title: "Dashboard",
+                  svgSrc: "assets/icons/dash.svg",
+                  press: () {
+                    widget.onMenuItemClicked(const DashboardScreen());
+                  },
+                ),
+                DrawerListTile(
+                  title: "Users",
+                  svgSrc: "assets/icons/users.svg",
+                  press: () {
+                    widget.onMenuItemClicked(const UsersScreen());
+                  },
+                ),
+                DrawerListTile(
+                  title: "Employees",
+                  svgSrc: "assets/icons/activeUser.svg",
+                  press: () {
+                    widget.onMenuItemClicked(const EmployeesScreen());
+                  },
+                ),
+                DrawerListTile(
+                  title: "Cinemas",
+                  svgSrc: "assets/icons/movie.svg",
+                  press: () {
+                    widget.onMenuItemClicked(const CinemasScreen());
+                  },
+                ),
+                DrawerListTile(
+                  title: "Shows",
+                  svgSrc: "assets/icons/cinema.svg",
+                  press: () {
+                    widget.onMenuItemClicked(const ShowsScreen());
+                  },
+                ),
+                DrawerListTile(
+                  title: "Movies",
+                  svgSrc: "assets/icons/show.svg",
+                  press: () {
+                    widget.onMenuItemClicked(const MoviesScreen());
+                  },
+                ),
+                DrawerListTile(
+                  title: "Productions",
+                  svgSrc: "assets/icons/production.svg",
+                  press: () {
+                    widget.onMenuItemClicked(const ProductionScreen());
+                  },
+                ),
+                DrawerListTile(
+                  title: "Genres",
+                  svgSrc: "assets/icons/genre.svg",
+                  press: () {
+                    widget.onMenuItemClicked(const GenresScreen());
+                  },
+                ),
+                DrawerListTile(
+                  title: "Reservations",
+                  svgSrc: "assets/icons/reservation.svg",
+                  press: () {
+                    widget.onMenuItemClicked(const ReservationsScreen());
+                  },
+                ),
+                DrawerListTile(
+                  title: "Reports",
+                  svgSrc: "assets/icons/report.svg",
+                  press: () {
+                    widget.onMenuItemClicked(const ReportScreen());
                   },
                 ),
                 ExpansionTile(
                   onExpansionChanged: (value) {
                     setState(() {
-                      isExpanded = value;
+                      isExpanded =
+                          value;
                     });
                   },
-                  leading: Icon(Icons.category, color: Colors.white),
-                  title: Text("Referentni podaci", style: TextStyle(color: Colors.white),
+                  title: const Text(
+                    "Referent data",
+                    style: TextStyle(color: Colors.white),
                   ),
-                  children: <Widget>[
-                    ListTile(
-                      leading: Icon(Icons.adjust_rounded, color: Colors.white,),
-                      title: Text("Countries",style: TextStyle(color: Colors.white),),
-                      onTap: () {
-                        widget.onMenuItemClicked(CountryScreen());
-                      },
-                    ),
-                    ListTile(
-                      leading: Icon(Icons.location_city_rounded, color: Colors.white,),
-                      title: Text("Cities",style: TextStyle(color: Colors.white),),
-                      onTap: () {
-                        widget.onMenuItemClicked(CityScreen());
-                      },
-                    ),
-                    ListTile(
-                      leading: Icon(Icons.language, color: Colors.white,),
-                      title: Text("Languages",style: TextStyle(color: Colors.white),),
-                      onTap: () {
-                        widget.onMenuItemClicked(LanguageScreen());
-                      },
-                    ),
-                  ],
                   trailing: Icon(
                     !isExpanded
                         ? Icons.keyboard_arrow_down
-                        : Icons.keyboard_arrow_right, // Ikona za strelicu
-                    color: Colors.white, // Boja strelice
+                        : Icons.keyboard_arrow_right,
+                    color: Colors.white,
                   ),
-                ),
-                ListTile(
-                  leading: Icon(Icons.home_outlined, color: Colors.white,),
-                  title: Text("Cinemas",style: TextStyle(color: Colors.white),),
-                  onTap: () {
-                    widget.onMenuItemClicked(CinemasScreen());
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.production_quantity_limits, color: Colors.white,),
-                  title: Text("Production",style: TextStyle(color: Colors.white),),
-                  onTap: () {
-                    widget.onMenuItemClicked(ProductionScreen());
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.check, color: Colors.white,),
-                  title: Text("Reservation",style: TextStyle(color: Colors.white),),
-                  onTap: () {
-                    widget.onMenuItemClicked(ReservationsScreen());
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.movie_creation_outlined, color: Colors.white,),
-                  title: Text("Movies",style: TextStyle(color: Colors.white),),
-                  onTap: () {
-                    widget.onMenuItemClicked(MoviesScreen());
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.movie_filter_outlined, color: Colors.white,),
-                  title: Text("Genres",style: TextStyle(color: Colors.white),),
-                  onTap: () {
-                    widget.onMenuItemClicked(GenresScreen());
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.person, color: Colors.white,),
-                  title: Text("Actors",style: TextStyle(color: Colors.white),),
-                  onTap: () {
-                    widget.onMenuItemClicked(ActorsScreen());
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.slideshow, color: Colors.white,),
-                  title: Text("Shows",style: TextStyle(color: Colors.white),),
-                  onTap: () {
-                    widget.onMenuItemClicked(ShowsScreen());
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.person, color: Colors.white,),
-                  title: Text("Users",style: TextStyle(color: Colors.white),),
-                  onTap: () {
-                    widget.onMenuItemClicked(UsersScreen());
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.person, color: Colors.white,),
-                  title: Text("Employees",style: TextStyle(color: Colors.white),),
-                  onTap: () {
-                    widget.onMenuItemClicked(EmployeesScreen());
-                  },
+                  children: <Widget>[
+                    DrawerListTile(
+                      title: "Countries",
+                      svgSrc: "assets/icons/country.svg",
+                      press: () {
+                        widget.onMenuItemClicked(const CountryScreen());
+                      },
+                    ),
+                    DrawerListTile(
+                      title: "Cities",
+                      svgSrc: "assets/icons/city.svg",
+                      press: () {
+                        widget.onMenuItemClicked(const CityScreen());
+                      },
+                    ),
+                    DrawerListTile(
+                      title: "Languages",
+                      svgSrc: "assets/icons/language.svg",
+                      press: () {
+                        widget.onMenuItemClicked(const LanguageScreen());
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          Container(
-            margin:
-                EdgeInsets.only(bottom: 5), // Postavite željenu marginu ovdje
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-              ),
-              onPressed: loginUserProvider.logout,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(
-                    Icons.logout,
-                    color: Colors.white,
-                  ),
-                  SizedBox(
-                    width: 10,
-                  ),
-                  Text('Logout')
-                ],
-              ),
-            ),
+          DrawerListTile(
+            title: "Logout",
+            svgSrc: "assets/icons/logout.svg",
+            press: () {
+              loginUserProvider.logout();
+              Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (context) => const LoginScreen()));
+            },
           ),
         ],
+
       ),
     );
   }
@@ -209,10 +201,11 @@ class DrawerListTile extends StatelessWidget {
   const DrawerListTile({
     Key? key,
     required this.title,
+    required this.svgSrc,
     required this.press,
   }) : super(key: key);
 
-  final String title;
+  final String title, svgSrc;
   final VoidCallback press;
 
   @override
@@ -220,9 +213,14 @@ class DrawerListTile extends StatelessWidget {
     return ListTile(
       onTap: press,
       horizontalTitleGap: 0.0,
+      leading: SvgPicture.asset(
+        svgSrc,
+        color: Colors.white,
+        height: 21,
+      ),
       title: Text(
         title,
-        style: TextStyle(color: Colors.white),
+        style: const TextStyle(color: Colors.white),
       ),
     );
   }
